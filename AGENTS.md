@@ -1,7 +1,7 @@
 # ren-canv
 
-Read the workspace layer first: `../../../AGENTS.md` and
-`../../../.ai/config/` (stability.md first). Then [README.md](README.md) and
+Read the workspace layer first: [`../../../AGENTS.md`](https://github.com/wiltonlazary/rui/blob/main/AGENTS.md) and
+[`../../../.ai/config/`](https://github.com/wiltonlazary/rui/tree/main/.ai/config) (stability.md first). Then [README.md](README.md) and
 [TODO.md](TODO.md).
 
 ren-canv is the engine of the drawn renderers (ren-skia, ren-three). It

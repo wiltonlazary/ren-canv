@@ -14,8 +14,8 @@ A renderer package subclasses `Document` and replays its frames on a surface:
 
 | Package | Measures text with | Draws on |
 | --- | --- | --- |
-| [ren-skia](../../../ren-skia/wtree/_repo_) | the font file's own advances (`Sfnt`), shaped where text needs it | a CanvasKit surface |
-| [ren-three](../../../ren-three/wtree/_repo_) | the font file's own advances (`Sfnt`), shaped where text needs it | a 2D canvas, as a three.js texture |
+| [ren-skia](https://github.com/wiltonlazary/ren-skia) | the font file's own advances (`Sfnt`), shaped where text needs it | a CanvasKit surface |
+| [ren-three](https://github.com/wiltonlazary/ren-three) | the font file's own advances (`Sfnt`), shaped where text needs it | a 2D canvas, as a three.js texture |
 
 The package is named `ren-canv`, and
 `package.json` is `private`. Its runtime dependencies are ren-core (linked
@@ -196,7 +196,7 @@ without touching anything else:
 - An opacity below 1 composites the item in a layer (`layer`), except an
   empty box that draws one fill (no border, shadow, ring or gradient): its
   fill takes the opacity in its alpha, the same pixels without an
-  offscreen layer. Measured with [ren-bench's opacity harness](../../../ren-bench/wtree/_repo_/bench/skia/opacity.jsx) (60
+  offscreen layer. Measured with [ren-bench's opacity harness](https://github.com/wiltonlazary/ren-bench/blob/main/bench/skia/opacity.jsx) (60
   pulsing empty round boxes, node, CanvasKit raster, 400 frames, ABBA, load
   9.4-10.4): a frame 19.8 / 21.1 ms with layers, 1.43 / 1.48 ms folded (the
   replay 19.4-20.7 → 1.07-1.12 ms). An opacity-only restyle runs no layout
@@ -703,7 +703,7 @@ never when nothing differs). A damage rectangle grows over each piece it
 cuts that has an antialiased edge (text, a rounded fill, a border, a
 figure), so a clip never runs along one; a plain fill on whole device
 pixels clips exactly and stays out, so two changes beside a column's edge
-do not pull in the columns' backgrounds (measured with [ren-bench's busy-screen harness](../../../ren-bench/wtree/_repo_/bench/skia/busy.jsx), documented in ren-skia's README, Benchmarks). The command buffer's format is in
+do not pull in the columns' backgrounds (measured with [ren-bench's busy-screen harness](https://github.com/wiltonlazary/ren-bench/blob/main/bench/skia/busy.jsx), documented in ren-skia's README, Benchmarks). The command buffer's format is in
 `src/draw.js`.
 
 ## Tests
