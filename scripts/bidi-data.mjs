@@ -1,0 +1,173 @@
+// Generates src/bidi-data.js, the Unicode 16.0.0 data src/bidi.js reads:
+// each code point's Bidi_Class (DerivedBidiClass.txt, its @missing defaults
+// included), the paired brackets (BidiBrackets.txt) and the mirrored pairs
+// (BidiMirroring.txt), packed as variable-length numbers in strings.
+//
+//   node scripts/bidi-data.mjs [dir]          writes src/bidi-data.js
+//   node scripts/bidi-data.mjs --cases [dir]  writes test/fixtures/bidi-characters.txt
+//
+// The files are read from `dir` when given (DerivedBidiClass.txt may sit in
+// it or in its extracted/), else downloaded from unicode.org. --cases picks
+// test/bidi.test.js's subset of BidiCharacterTest.txt.
+
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const VERSION = '16.0.0';
+const BASE = `https://www.unicode.org/Public/${VERSION}/ucd/`;
+
+/** The class numbers, in src/bidi.js's order (L is 0). */
+const NAMES = ['L', 'R', 'AL', 'EN', 'ES', 'ET', 'AN', 'CS', 'NSM', 'BN', 'B', 'S', 'WS', 'ON', 'LRE', 'LRO', 'RLE', 'RLO', 'PDF', 'LRI', 'RLI', 'FSI', 'PDI'];
+/** The long value names the @missing lines use. */
+const LONG = {
+  Left_To_Right: 'L', Right_To_Left: 'R', Arabic_Letter: 'AL', European_Number: 'EN', European_Separator: 'ES',
+  European_Terminator: 'ET', Arabic_Number: 'AN', Common_Separator: 'CS', Nonspacing_Mark: 'NSM', Boundary_Neutral: 'BN',
+  Paragraph_Separator: 'B', Segment_Separator: 'S', White_Space: 'WS', Other_Neutral: 'ON',
+};
+
+/** Digits of the packing: 0-31 end a number, 32-63 continue it. */
+const DIGITS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_';
+
+/**
+ * A file of the UCD: read from `dir`, else downloaded.
+ * @param {string | undefined} dir @param {string} path a path under ucd/
+ */
+async function ucd(dir, path) {
+  if (dir) {
+    const name = path.slice(path.lastIndexOf('/') + 1);
+    for (const at of [`${dir}/${path}`, `${dir}/${name}`]) if (existsSync(at)) return readFileSync(at, 'utf8');
+    throw new Error(`${path} is not in ${dir}`);
+  }
+  const res = await fetch(BASE + path);
+  if (!res.ok) throw new Error(`${BASE + path}: ${res.status}`);
+  return res.text();
+}
+
+/** A first..last range of hex code points. @param {string} field */
+function range(field) {
+  const [a, b] = field.trim().split('..');
+  return [parseInt(a, 16), parseInt(b ?? a, 16)];
+}
+
+/** `n` (a whole number at least 0) in the packing's digits. @param {number} n */
+function pack(n) {
+  let out = DIGITS[n % 32];
+  for (n = Math.floor(n / 32); n > 0; n = Math.floor(n / 32)) out = DIGITS[32 + (n % 32)] + out;
+  return out;
+}
+
+/** A signed number as a whole one: 0, -1, 1, -2, 2 ... as 0, 1, 2, 3, 4. @param {number} n */
+const zigzag = n => (n < 0 ? -2 * n - 1 : 2 * n);
+
+/** Every code point's class, as runs of [length, class]. @param {string} text */
+function classRuns(text) {
+  const cls = new Uint8Array(0x110000);
+  // The @missing lines come first in the file, the whole range before the
+  // blocks, so each later line overrides the earlier ones.
+  for (const line of text.split('\n')) {
+    const missing = /^#\s*@missing:\s*([0-9A-F.]+)\s*;\s*(\w+)/.exec(line);
+    const data = /^([0-9A-F.]+)\s*;\s*(\w+)/.exec(line);
+    const m = missing ?? data;
+    if (!m) continue;
+    const name = LONG[/** @type {keyof typeof LONG} */ (m[2])] ?? m[2];
+    const k = NAMES.indexOf(name);
+    if (k < 0) throw new Error(`unknown class ${m[2]}`);
+    const [a, b] = range(m[1]);
+    cls.fill(k, a, b + 1);
+  }
+  /** @type {number[]} */
+  const runs = [];
+  for (let i = 0; i < cls.length;) {
+    let j = i + 1;
+    while (j < cls.length && cls[j] === cls[i]) j++;
+    runs.push(j - i, cls[i]);
+    i = j;
+  }
+  return runs;
+}
+
+/** The data module's text. @param {string | undefined} dir */
+async function data(dir) {
+  const runs = classRuns(await ucd(dir, 'extracted/DerivedBidiClass.txt'));
+  let classes = '';
+  for (let i = 0; i < runs.length; i += 2) classes += pack(runs[i] * 32 + runs[i + 1]);
+
+  /** @type {[number, number][]} */
+  const open = [];
+  for (const line of (await ucd(dir, 'BidiBrackets.txt')).split('\n')) {
+    const m = /^([0-9A-F]+);\s*([0-9A-F]+);\s*([oc])/.exec(line);
+    if (m && m[3] === 'o') open.push([parseInt(m[1], 16), parseInt(m[2], 16)]);
+  }
+  open.sort((x, y) => x[0] - y[0]);
+  let brackets = '';
+  for (let i = 0, at = 0; i < open.length; at = open[i][0], i++) brackets += pack(open[i][0] - at) + pack(zigzag(open[i][1] - open[i][0]));
+
+  /** @type {[number, number][]} */
+  const pairs = [];
+  for (const line of (await ucd(dir, 'BidiMirroring.txt')).split('\n')) {
+    const m = /^([0-9A-F]+);\s*([0-9A-F]+)/.exec(line);
+    if (m) pairs.push([parseInt(m[1], 16), parseInt(m[2], 16)]);
+  }
+  pairs.sort((x, y) => x[0] - y[0]);
+  let mirrors = '';
+  for (let i = 0, at = 0; i < pairs.length; at = pairs[i][0], i++) mirrors += pack(pairs[i][0] - at) + pack(zigzag(pairs[i][1] - pairs[i][0]));
+
+  return `// Generated by scripts/bidi-data.mjs from Unicode ${VERSION}'s DerivedBidiClass.txt,
+// BidiBrackets.txt and BidiMirroring.txt. Do not edit by hand: run the script.
+//
+// Each string is a sequence of whole numbers, each in digits of
+// ${DIGITS}
+// (a digit's place in it is its value): one at 32 or above carries five bits
+// and continues the number, one below 32 carries the last five.
+
+/**
+ * Every code point from U+0000 up, as runs: each number is a run's length
+ * times 32 plus its class (src/bidi.js's numbering, L 0 to PDI 22).
+ */
+export const CLASSES = '${classes}';
+
+/** The opening paired brackets: each the distance from the one before, then its closing bracket's distance from it (zigzag: 2n, or -2n - 1 when below). */
+export const BRACKETS = '${brackets}';
+
+/** The Bidi_Mirroring_Glyph pairs: each code point's distance from the one before, then its mirror's distance from it (zigzag). */
+export const MIRRORS = '${mirrors}';
+`;
+}
+
+/**
+ * test/bidi.test.js's cases: every line of the hand-written sections, every
+ * line with an explicit embedding, override or isolate, and every 25th of
+ * the rest.
+ * @param {string | undefined} dir
+ */
+async function cases(dir) {
+  const text = await ucd(dir, 'BidiCharacterTest.txt');
+  const lines = text.split('\n');
+  const explicit = /(?:^| )(?:202[A-E]|206[6-9])(?: |;)/;
+  const out = [
+    `# A subset of Unicode ${VERSION}'s BidiCharacterTest.txt, picked by`,
+    '# scripts/bidi-data.mjs --cases: every case of the hand-written sections',
+    '# (before the permutations), every case holding an explicit embedding,',
+    '# override or isolate, and every 25th of the rest, in file order. Fields',
+    '# as in BidiCharacterTest.txt:',
+    '#   code points; paragraph direction (0 LTR, 1 RTL, 2 auto); resolved',
+    '#   paragraph level; resolved levels (x: removed by X9); visual order',
+    '',
+  ];
+  let section = 0;
+  let rest = 0;
+  for (const line of lines) {
+    if (line.startsWith('####')) section++;
+    if (!line || line.startsWith('#')) continue;
+    if (section < 4 || explicit.test(line) || rest++ % 25 === 0) out.push(line);
+  }
+  return out.join('\n') + '\n';
+}
+
+const args = process.argv.slice(2);
+if (args[0] === '--cases') {
+  writeFileSync(`${ROOT}test/fixtures/bidi-characters.txt`, await cases(args[1]));
+} else {
+  writeFileSync(`${ROOT}src/bidi-data.js`, await data(args[0]));
+}

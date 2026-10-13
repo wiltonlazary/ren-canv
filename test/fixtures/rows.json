@@ -1,0 +1,2484 @@
+{
+ "recorded": "Chrome/154.0.8037.57",
+ "font": "\"DejaVu Sans Mono\", \"Noto Sans Devanagari UI\", \"Noto Color Emoji\", monospace",
+ "cases": [
+  {
+   "name": "words wrapped at spaces, one broken mid-word",
+   "text": "The quick brown fox jumps over the lazy dog and a supercalifragilisticexpialidocious word ends it here",
+   "width": 160,
+   "lines": 12,
+   "size": 16,
+   "line": 20,
+   "ascent": 15,
+   "descent": 4,
+   "starts": [
+    0,
+    16,
+    31,
+    48,
+    50,
+    66,
+    82,
+    98
+   ],
+   "widths": {
+    "T": 9.640625,
+    "h": 9.640625,
+    "e": 9.640625,
+    " ": 9.640625,
+    "q": 9.640625,
+    "u": 9.640625,
+    "i": 9.640625,
+    "c": 9.640625,
+    "k": 9.640625,
+    "b": 9.640625,
+    "r": 9.640625,
+    "o": 9.640625,
+    "w": 9.640625,
+    "n": 9.640625,
+    "f": 9.640625,
+    "x": 9.640625,
+    "j": 9.640625,
+    "m": 9.640625,
+    "p": 9.640625,
+    "s": 9.640625,
+    "v": 9.640625,
+    "t": 9.640625,
+    "l": 9.640625,
+    "a": 9.640625,
+    "z": 9.640625,
+    "y": 9.640625,
+    "d": 9.640625,
+    "g": 9.640625
+   },
+   "runs": [
+    {
+     "name": "down through short rows and a word broken mid-word",
+     "from": [
+      3,
+      3
+     ],
+     "keys": [
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       19,
+       19,
+       0
+      ],
+      [
+       34,
+       34,
+       0
+      ],
+      [
+       50,
+       50,
+       0
+      ],
+      [
+       53,
+       53,
+       0
+      ],
+      [
+       69,
+       69,
+       0
+      ],
+      [
+       85,
+       85,
+       0
+      ],
+      [
+       101,
+       101,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "up from inside the broken word",
+     "from": [
+      60,
+      60
+     ],
+     "keys": [
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       50,
+       50,
+       0
+      ],
+      [
+       41,
+       41,
+       0
+      ],
+      [
+       26,
+       26,
+       0
+      ],
+      [
+       10,
+       10,
+       0
+      ],
+      [
+       0,
+       0,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "the goal x reset by Left and Right",
+     "from": [
+      7,
+      7
+     ],
+     "keys": [
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowLeft",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowLeft",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowRight",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowRight",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       23,
+       23,
+       0
+      ],
+      [
+       22,
+       22,
+       0
+      ],
+      [
+       21,
+       21,
+       0
+      ],
+      [
+       22,
+       22,
+       0
+      ],
+      [
+       23,
+       23,
+       0
+      ],
+      [
+       38,
+       38,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "Home and End by row, and with Shift",
+     "from": [
+      22,
+      22
+     ],
+     "keys": [
+      {
+       "key": "Home",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "End",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "Home",
+       "shift": true,
+       "ctrl": false
+      },
+      {
+       "key": "End",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "End",
+       "shift": true,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       16,
+       16,
+       0
+      ],
+      [
+       31,
+       31,
+       0
+      ],
+      [
+       31,
+       16,
+       0
+      ],
+      [
+       31,
+       31,
+       0
+      ],
+      [
+       31,
+       31,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "End at a mid-word break, then down and up",
+     "from": [
+      52,
+      52
+     ],
+     "keys": [
+      {
+       "key": "End",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "Home",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "End",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "End",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       66,
+       66,
+       0
+      ],
+      [
+       50,
+       50,
+       0
+      ],
+      [
+       66,
+       66,
+       0
+      ],
+      [
+       82,
+       82,
+       0
+      ],
+      [
+       66,
+       66,
+       0
+      ],
+      [
+       66,
+       66,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "Shift with down and up",
+     "from": [
+      20,
+      20
+     ],
+     "keys": [
+      {
+       "key": "ArrowDown",
+       "shift": true,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": true,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": true,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowRight",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       20,
+       35,
+       0
+      ],
+      [
+       20,
+       50,
+       0
+      ],
+      [
+       20,
+       50,
+       0
+      ],
+      [
+       50,
+       50,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "three Ctrl+ArrowLeft back to back",
+     "from": [
+      98,
+      98
+     ],
+     "keys": [
+      {
+       "key": "ArrowLeft",
+       "shift": false,
+       "ctrl": true
+      },
+      {
+       "key": "ArrowLeft",
+       "shift": false,
+       "ctrl": true
+      },
+      {
+       "key": "ArrowLeft",
+       "shift": false,
+       "ctrl": true
+      }
+     ],
+     "after": [
+      [
+       95,
+       95,
+       0
+      ],
+      [
+       90,
+       90,
+       0
+      ],
+      [
+       85,
+       85,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "the goal x reset by Left and Right back to the same caret",
+     "from": [
+      44,
+      44
+     ],
+     "keys": [
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowLeft",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowRight",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       50,
+       50,
+       0
+      ],
+      [
+       49,
+       49,
+       0
+      ],
+      [
+       50,
+       50,
+       0
+      ],
+      [
+       66,
+       66,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "the goal x reset by typing",
+     "from": [
+      13,
+      13
+     ],
+     "keys": [
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "x",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       29,
+       29,
+       0
+      ],
+      [
+       44,
+       44,
+       0
+      ],
+      [
+       45,
+       45,
+       0
+      ],
+      [
+       32,
+       32,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "Shift+End twice",
+     "from": [
+      22,
+      22
+     ],
+     "keys": [
+      {
+       "key": "End",
+       "shift": true,
+       "ctrl": false
+      },
+      {
+       "key": "End",
+       "shift": true,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       22,
+       31,
+       0
+      ],
+      [
+       22,
+       31,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "Shift+Down through soft wraps",
+     "from": [
+      3,
+      3
+     ],
+     "keys": [
+      {
+       "key": "ArrowDown",
+       "shift": true,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": true,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": true,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": true,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": true,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       3,
+       19,
+       0
+      ],
+      [
+       3,
+       34,
+       0
+      ],
+      [
+       3,
+       50,
+       0
+      ],
+      [
+       3,
+       69,
+       0
+      ],
+      [
+       3,
+       85,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "End, then Shift+Down",
+     "from": [
+      22,
+      22
+     ],
+     "keys": [
+      {
+       "key": "End",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": true,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": true,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       31,
+       31,
+       0
+      ],
+      [
+       31,
+       46,
+       0
+      ],
+      [
+       31,
+       50,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "down to a wrap, Shift+Right, down",
+     "from": [
+      3,
+      3
+     ],
+     "keys": [
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowRight",
+       "shift": true,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       19,
+       19,
+       0
+      ],
+      [
+       34,
+       34,
+       0
+      ],
+      [
+       50,
+       50,
+       0
+      ],
+      [
+       50,
+       51,
+       0
+      ],
+      [
+       67,
+       67,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "End twice, Home twice",
+     "from": [
+      22,
+      22
+     ],
+     "keys": [
+      {
+       "key": "End",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "End",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "Home",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "Home",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       31,
+       31,
+       0
+      ],
+      [
+       31,
+       31,
+       0
+      ],
+      [
+       16,
+       16,
+       0
+      ],
+      [
+       16,
+       16,
+       0
+      ]
+     ]
+    }
+   ],
+   "wordLeft": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 4,
+    "6": 4,
+    "7": 4,
+    "8": 4,
+    "9": 4,
+    "10": 4,
+    "11": 10,
+    "12": 10,
+    "13": 10,
+    "14": 10,
+    "15": 10,
+    "16": 10,
+    "17": 16,
+    "18": 16,
+    "19": 16,
+    "20": 16,
+    "21": 20,
+    "22": 20,
+    "23": 20,
+    "24": 20,
+    "25": 20,
+    "26": 20,
+    "27": 26,
+    "28": 26,
+    "29": 26,
+    "30": 26,
+    "31": 26,
+    "32": 31,
+    "33": 31,
+    "34": 31,
+    "35": 31,
+    "36": 35,
+    "37": 35,
+    "38": 35,
+    "39": 35,
+    "40": 35,
+    "41": 40,
+    "42": 40,
+    "43": 40,
+    "44": 40,
+    "45": 44,
+    "46": 44,
+    "47": 44,
+    "48": 44,
+    "49": 48,
+    "50": 48,
+    "51": 50,
+    "52": 50,
+    "53": 50,
+    "54": 50,
+    "55": 50,
+    "56": 50,
+    "57": 50,
+    "58": 50,
+    "59": 50,
+    "60": 50,
+    "61": 50,
+    "62": 50,
+    "63": 50,
+    "64": 50,
+    "65": 50,
+    "66": 50,
+    "67": 50,
+    "68": 50,
+    "69": 50,
+    "70": 50,
+    "71": 50,
+    "72": 50,
+    "73": 50,
+    "74": 50,
+    "75": 50,
+    "76": 50,
+    "77": 50,
+    "78": 50,
+    "79": 50,
+    "80": 50,
+    "81": 50,
+    "82": 50,
+    "83": 50,
+    "84": 50,
+    "85": 50,
+    "86": 85,
+    "87": 85,
+    "88": 85,
+    "89": 85,
+    "90": 85,
+    "91": 90,
+    "92": 90,
+    "93": 90,
+    "94": 90,
+    "95": 90,
+    "96": 95,
+    "97": 95,
+    "98": 95,
+    "99": 98,
+    "100": 98,
+    "101": 98,
+    "102": 98
+   }
+  },
+  {
+   "name": "a row with a conjunct and a row with a ZWJ family",
+   "text": "ab क्ष cd क्षक्षef ghij klmn 👨‍👩‍👧‍👦👨‍👩‍👧‍👦 xyz 👨‍👩‍👧‍👦 pq",
+   "width": 96,
+   "lines": 12,
+   "size": 16,
+   "line": 20,
+   "ascent": 15,
+   "descent": 4,
+   "starts": [
+    0,
+    10,
+    24,
+    52
+   ],
+   "widths": {
+    "a": 9.640625,
+    "b": 9.640625,
+    " ": 9.640625,
+    "क": 12.192031860351562,
+    "्": 8.160018920898438,
+    "ष": 9.248016357421875,
+    "क्ष": 11.40625,
+    "c": 9.640625,
+    "d": 9.65625,
+    "e": 9.640625,
+    "f": 9.65625,
+    "g": 9.65625,
+    "h": 9.640625,
+    "i": 9.65625,
+    "j": 9.640625,
+    "k": 9.640625,
+    "l": 9.640625,
+    "m": 9.640625,
+    "n": 9.640625,
+    "👨": 20,
+    "‍": 0,
+    "👩": 20,
+    "👧": 20,
+    "👦": 20,
+    "👨‍👩‍👧‍👦": 20,
+    "x": 9.640625,
+    "y": 9.640625,
+    "z": 9.640625,
+    "p": 9.640625,
+    "q": 9.640625
+   },
+   "runs": [
+    {
+     "name": "down onto a conjunct and a family",
+     "from": [
+      1,
+      1
+     ],
+     "keys": [
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       13,
+       13,
+       0
+      ],
+      [
+       25,
+       25,
+       0
+      ],
+      [
+       53,
+       53,
+       0
+      ],
+      [
+       70,
+       70,
+       0
+      ],
+      [
+       70,
+       70,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "End, then down from the row end",
+     "from": [
+      0,
+      0
+     ],
+     "keys": [
+      {
+       "key": "End",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       10,
+       10,
+       0
+      ],
+      [
+       22,
+       22,
+       0
+      ],
+      [
+       40,
+       40,
+       0
+      ],
+      [
+       69,
+       69,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "down and back up over clusters",
+     "from": [
+      6,
+      6
+     ],
+     "keys": [
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       18,
+       18,
+       0
+      ],
+      [
+       28,
+       28,
+       0
+      ],
+      [
+       56,
+       56,
+       0
+      ],
+      [
+       70,
+       70,
+       0
+      ],
+      [
+       28,
+       28,
+       0
+      ],
+      [
+       18,
+       18,
+       0
+      ],
+      [
+       6,
+       6,
+       0
+      ],
+      [
+       0,
+       0,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "Home and End over clusters",
+     "from": [
+      4,
+      4
+     ],
+     "keys": [
+      {
+       "key": "Home",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "End",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "End",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "Home",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       0,
+       0,
+       0
+      ],
+      [
+       10,
+       10,
+       0
+      ],
+      [
+       22,
+       22,
+       0
+      ],
+      [
+       24,
+       24,
+       0
+      ],
+      [
+       52,
+       52,
+       0
+      ],
+      [
+       24,
+       24,
+       0
+      ]
+     ]
+    }
+   ],
+   "wordLeft": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "6": 3,
+    "7": 3,
+    "8": 7,
+    "9": 7,
+    "10": 7,
+    "13": 10,
+    "16": 10,
+    "17": 10,
+    "18": 10,
+    "19": 10,
+    "20": 19,
+    "21": 19,
+    "22": 19,
+    "23": 19,
+    "24": 19,
+    "25": 24,
+    "26": 24,
+    "27": 24,
+    "28": 24,
+    "29": 24,
+    "40": 29,
+    "51": 29,
+    "52": 29,
+    "53": 52,
+    "54": 52,
+    "55": 52,
+    "56": 52,
+    "67": 56,
+    "68": 56,
+    "69": 68,
+    "70": 68
+   }
+  },
+  {
+   "name": "spaces hanging past the field at a wrap",
+   "text": "abcdefgh      ijkl mnop",
+   "width": 96,
+   "lines": 12,
+   "size": 16,
+   "line": 20,
+   "ascent": 15,
+   "descent": 4,
+   "starts": [
+    0,
+    14
+   ],
+   "widths": {
+    "a": 9.640625,
+    "b": 9.640625,
+    "c": 9.640625,
+    "d": 9.640625,
+    "e": 9.640625,
+    "f": 9.640625,
+    "g": 9.640625,
+    "h": 9.640625,
+    " ": 9.640625,
+    "i": 9.640625,
+    "j": 9.640625,
+    "k": 9.640625,
+    "l": 9.640625,
+    "m": 9.640625,
+    "n": 9.640625,
+    "o": 9.640625,
+    "p": 9.640625
+   },
+   "runs": [
+    {
+     "name": "End on the hanging spaces, then down and up",
+     "from": [
+      0,
+      0
+     ],
+     "keys": [
+      {
+       "key": "End",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       14,
+       14,
+       0
+      ],
+      [
+       23,
+       23,
+       0
+      ],
+      [
+       10,
+       10,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "down and up across the hanging spaces",
+     "from": [
+      3,
+      3
+     ],
+     "keys": [
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "End",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "Home",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       17,
+       17,
+       0
+      ],
+      [
+       3,
+       3,
+       0
+      ],
+      [
+       14,
+       14,
+       0
+      ],
+      [
+       0,
+       0,
+       0
+      ]
+     ]
+    }
+   ],
+   "wordLeft": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0,
+    "6": 0,
+    "7": 0,
+    "8": 0,
+    "9": 0,
+    "10": 0,
+    "11": 0,
+    "12": 0,
+    "13": 0,
+    "14": 0,
+    "15": 14,
+    "16": 14,
+    "17": 14,
+    "18": 14,
+    "19": 14,
+    "20": 19,
+    "21": 19,
+    "22": 19,
+    "23": 19
+   }
+  },
+  {
+   "name": "a row ending exactly at the field's width",
+   "text": "abcdefghi jklmnopqr stu",
+   "width": 96,
+   "lines": 12,
+   "size": 16,
+   "line": 20,
+   "ascent": 15,
+   "descent": 4,
+   "starts": [
+    0,
+    10,
+    20
+   ],
+   "widths": {
+    "a": 9.640625,
+    "b": 9.640625,
+    "c": 9.640625,
+    "d": 9.640625,
+    "e": 9.640625,
+    "f": 9.640625,
+    "g": 9.640625,
+    "h": 9.640625,
+    "i": 9.640625,
+    " ": 9.640625,
+    "j": 9.640625,
+    "k": 9.640625,
+    "l": 9.640625,
+    "m": 9.640625,
+    "n": 9.640625,
+    "o": 9.640625,
+    "p": 9.640625,
+    "q": 9.640625,
+    "r": 9.640625,
+    "s": 9.640625,
+    "t": 9.640625,
+    "u": 9.640625
+   },
+   "runs": [
+    {
+     "name": "End at the full row, then down",
+     "from": [
+      0,
+      0
+     ],
+     "keys": [
+      {
+       "key": "End",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       10,
+       10,
+       0
+      ],
+      [
+       20,
+       20,
+       0
+      ],
+      [
+       23,
+       23,
+       0
+      ]
+     ]
+    }
+   ],
+   "wordLeft": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0,
+    "6": 0,
+    "7": 0,
+    "8": 0,
+    "9": 0,
+    "10": 0,
+    "11": 10,
+    "12": 10,
+    "13": 10,
+    "14": 10,
+    "15": 10,
+    "16": 10,
+    "17": 10,
+    "18": 10,
+    "19": 10,
+    "20": 10,
+    "21": 20,
+    "22": 20,
+    "23": 20
+   }
+  },
+  {
+   "name": "a paragraph starting with a space",
+   "text": " supercalifragilisticexpialidocious and more",
+   "width": 96,
+   "lines": 12,
+   "size": 16,
+   "line": 20,
+   "ascent": 15,
+   "descent": 4,
+   "starts": [
+    0,
+    1,
+    10,
+    19,
+    28,
+    36
+   ],
+   "widths": {
+    " ": 9.640625,
+    "s": 9.640625,
+    "u": 9.640625,
+    "p": 9.640625,
+    "e": 9.640625,
+    "r": 9.640625,
+    "c": 9.640625,
+    "a": 9.640625,
+    "l": 9.640625,
+    "i": 9.640625,
+    "f": 9.640625,
+    "g": 9.640625,
+    "t": 9.640625,
+    "x": 9.640625,
+    "d": 9.640625,
+    "o": 9.640625,
+    "n": 9.640625,
+    "m": 9.640625
+   },
+   "runs": [
+    {
+     "name": "down from the leading space",
+     "from": [
+      0,
+      0
+     ],
+     "keys": [
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       1,
+       1,
+       0
+      ],
+      [
+       10,
+       10,
+       0
+      ],
+      [
+       19,
+       19,
+       0
+      ],
+      [
+       28,
+       28,
+       0
+      ],
+      [
+       36,
+       36,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "End and down from the second row",
+     "from": [
+      3,
+      3
+     ],
+     "keys": [
+      {
+       "key": "End",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "Home",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       10,
+       10,
+       0
+      ],
+      [
+       19,
+       19,
+       0
+      ],
+      [
+       10,
+       10,
+       0
+      ]
+     ]
+    }
+   ],
+   "wordLeft": {
+    "1": 0,
+    "2": 1,
+    "3": 1,
+    "4": 1,
+    "5": 1,
+    "6": 1,
+    "7": 1,
+    "8": 1,
+    "9": 1,
+    "10": 1,
+    "11": 1,
+    "12": 1,
+    "13": 1,
+    "14": 1,
+    "15": 1,
+    "16": 1,
+    "17": 1,
+    "18": 1,
+    "19": 1,
+    "20": 1,
+    "21": 1,
+    "22": 1,
+    "23": 1,
+    "24": 1,
+    "25": 1,
+    "26": 1,
+    "27": 1,
+    "28": 1,
+    "29": 1,
+    "30": 1,
+    "31": 1,
+    "32": 1,
+    "33": 1,
+    "34": 1,
+    "35": 1,
+    "36": 1,
+    "37": 36,
+    "38": 36,
+    "39": 36,
+    "40": 36,
+    "41": 40,
+    "42": 40,
+    "43": 40,
+    "44": 40
+   }
+  },
+  {
+   "name": "leading and repeated spaces",
+   "text": "   indented words   between   them aaaa   bbbb",
+   "width": 96,
+   "lines": 12,
+   "size": 16,
+   "line": 20,
+   "ascent": 15,
+   "descent": 4,
+   "starts": [
+    0,
+    3,
+    12,
+    20,
+    30,
+    42
+   ],
+   "widths": {
+    " ": 9.640625,
+    "i": 9.640625,
+    "n": 9.640625,
+    "d": 9.640625,
+    "e": 9.640625,
+    "t": 9.640625,
+    "w": 9.640625,
+    "o": 9.640625,
+    "r": 9.640625,
+    "s": 9.640625,
+    "b": 9.640625,
+    "h": 9.640625,
+    "m": 9.640625,
+    "a": 9.640625
+   },
+   "runs": [
+    {
+     "name": "down through repeated spaces",
+     "from": [
+      1,
+      1
+     ],
+     "keys": [
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       4,
+       4,
+       0
+      ],
+      [
+       13,
+       13,
+       0
+      ],
+      [
+       21,
+       21,
+       0
+      ],
+      [
+       31,
+       31,
+       0
+      ]
+     ]
+    }
+   ],
+   "wordLeft": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 3,
+    "5": 3,
+    "6": 3,
+    "7": 3,
+    "8": 3,
+    "9": 3,
+    "10": 3,
+    "11": 3,
+    "12": 3,
+    "13": 12,
+    "14": 12,
+    "15": 12,
+    "16": 12,
+    "17": 12,
+    "18": 12,
+    "19": 12,
+    "20": 12,
+    "21": 20,
+    "22": 20,
+    "23": 20,
+    "24": 20,
+    "25": 20,
+    "26": 20,
+    "27": 20,
+    "28": 20,
+    "29": 20,
+    "30": 20,
+    "31": 30,
+    "32": 30,
+    "33": 30,
+    "34": 30,
+    "35": 30,
+    "36": 35,
+    "37": 35,
+    "38": 35,
+    "39": 35,
+    "40": 35,
+    "41": 35,
+    "42": 35,
+    "43": 42,
+    "44": 42,
+    "45": 42,
+    "46": 42
+   }
+  },
+  {
+   "name": "more rows than lines: the caret row scrolled into view",
+   "text": "one two three four five six seven eight nine ten eleven twelve thirteen fourteen",
+   "width": 96,
+   "lines": 3,
+   "size": 16,
+   "line": 20,
+   "ascent": 15,
+   "descent": 4,
+   "starts": [
+    0,
+    8,
+    14,
+    24,
+    34,
+    40,
+    49,
+    56,
+    63,
+    72
+   ],
+   "widths": {
+    "o": 9.640625,
+    "n": 9.640625,
+    "e": 9.640625,
+    " ": 9.640625,
+    "t": 9.640625,
+    "w": 9.640625,
+    "h": 9.640625,
+    "r": 9.640625,
+    "f": 9.640625,
+    "u": 9.640625,
+    "i": 9.640625,
+    "v": 9.640625,
+    "s": 9.640625,
+    "x": 9.640625,
+    "g": 9.640625,
+    "l": 9.640625
+   },
+   "runs": [
+    {
+     "name": "down and up, scrolling",
+     "from": [
+      1,
+      1
+     ],
+     "keys": [
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       9,
+       9,
+       0
+      ],
+      [
+       15,
+       15,
+       0
+      ],
+      [
+       25,
+       25,
+       19
+      ],
+      [
+       35,
+       35,
+       39
+      ],
+      [
+       41,
+       41,
+       59
+      ],
+      [
+       50,
+       50,
+       79
+      ],
+      [
+       57,
+       57,
+       99
+      ],
+      [
+       64,
+       64,
+       119
+      ],
+      [
+       73,
+       73,
+       139
+      ],
+      [
+       64,
+       64,
+       139
+      ],
+      [
+       57,
+       57,
+       139
+      ],
+      [
+       50,
+       50,
+       120
+      ],
+      [
+       41,
+       41,
+       100
+      ],
+      [
+       35,
+       35,
+       80
+      ],
+      [
+       25,
+       25,
+       60
+      ],
+      [
+       15,
+       15,
+       40
+      ],
+      [
+       9,
+       9,
+       20
+      ],
+      [
+       1,
+       1,
+       0
+      ]
+     ]
+    },
+    {
+     "name": "End, down, Home and up, scrolling",
+     "from": [
+      0,
+      0
+     ],
+     "keys": [
+      {
+       "key": "End",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowDown",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "Home",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      },
+      {
+       "key": "ArrowUp",
+       "shift": false,
+       "ctrl": false
+      }
+     ],
+     "after": [
+      [
+       8,
+       8,
+       0
+      ],
+      [
+       14,
+       14,
+       0
+      ],
+      [
+       22,
+       22,
+       0
+      ],
+      [
+       32,
+       32,
+       19
+      ],
+      [
+       40,
+       40,
+       39
+      ],
+      [
+       48,
+       48,
+       59
+      ],
+      [
+       56,
+       56,
+       79
+      ],
+      [
+       49,
+       49,
+       79
+      ],
+      [
+       40,
+       40,
+       79
+      ],
+      [
+       34,
+       34,
+       79
+      ],
+      [
+       24,
+       24,
+       60
+      ]
+     ]
+    }
+   ],
+   "wordLeft": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 4,
+    "6": 4,
+    "7": 4,
+    "8": 4,
+    "9": 8,
+    "10": 8,
+    "11": 8,
+    "12": 8,
+    "13": 8,
+    "14": 8,
+    "15": 14,
+    "16": 14,
+    "17": 14,
+    "18": 14,
+    "19": 14,
+    "20": 19,
+    "21": 19,
+    "22": 19,
+    "23": 19,
+    "24": 19,
+    "25": 24,
+    "26": 24,
+    "27": 24,
+    "28": 24,
+    "29": 28,
+    "30": 28,
+    "31": 28,
+    "32": 28,
+    "33": 28,
+    "34": 28,
+    "35": 34,
+    "36": 34,
+    "37": 34,
+    "38": 34,
+    "39": 34,
+    "40": 34,
+    "41": 40,
+    "42": 40,
+    "43": 40,
+    "44": 40,
+    "45": 40,
+    "46": 45,
+    "47": 45,
+    "48": 45,
+    "49": 45,
+    "50": 49,
+    "51": 49,
+    "52": 49,
+    "53": 49,
+    "54": 49,
+    "55": 49,
+    "56": 49,
+    "57": 56,
+    "58": 56,
+    "59": 56,
+    "60": 56,
+    "61": 56,
+    "62": 56,
+    "63": 56,
+    "64": 63,
+    "65": 63,
+    "66": 63,
+    "67": 63,
+    "68": 63,
+    "69": 63,
+    "70": 63,
+    "71": 63,
+    "72": 63,
+    "73": 72,
+    "74": 72,
+    "75": 72,
+    "76": 72,
+    "77": 72,
+    "78": 72,
+    "79": 72,
+    "80": 72
+   }
+  }
+ ],
+ "shrink": {
+  "name": "more rows than lines: the caret row scrolled into view",
+  "scrolled": 139,
+  "shrunk": 0,
+  "emptied": 0
+ },
+ "native": {
+  "case": "words wrapped at spaces, one broken mid-word",
+  "paste": {
+   "from": [
+    4,
+    10
+   ],
+   "events": [
+    {
+     "type": "keydown",
+     "inputType": null,
+     "data": null,
+     "composing": false,
+     "value": "The quick brown fox jumps over the lazy dog and a supercalifragilisticexpialidocious word ends it here",
+     "start": 4,
+     "end": 10
+    },
+    {
+     "type": "paste",
+     "inputType": null,
+     "data": null,
+     "composing": null,
+     "value": "The quick brown fox jumps over the lazy dog and a supercalifragilisticexpialidocious word ends it here",
+     "start": 4,
+     "end": 10
+    },
+    {
+     "type": "beforeinput",
+     "inputType": "insertFromPaste",
+     "data": "fast ",
+     "composing": false,
+     "value": "The quick brown fox jumps over the lazy dog and a supercalifragilisticexpialidocious word ends it here",
+     "start": 4,
+     "end": 10
+    },
+    {
+     "type": "input",
+     "inputType": "insertFromPaste",
+     "data": "fast ",
+     "composing": false,
+     "value": "The fast brown fox jumps over the lazy dog and a supercalifragilisticexpialidocious word ends it here",
+     "start": 9,
+     "end": 9
+    }
+   ]
+  },
+  "composition": {
+   "from": [
+    4,
+    4
+   ],
+   "events": [
+    {
+     "type": "compositionstart",
+     "inputType": null,
+     "data": "",
+     "composing": null,
+     "value": "The quick brown fox jumps over the lazy dog and a supercalifragilisticexpialidocious word ends it here",
+     "start": 4,
+     "end": 4
+    },
+    {
+     "type": "compositionupdate",
+     "inputType": null,
+     "data": "に",
+     "composing": null,
+     "value": "The quick brown fox jumps over the lazy dog and a supercalifragilisticexpialidocious word ends it here",
+     "start": 4,
+     "end": 4
+    },
+    {
+     "type": "beforeinput",
+     "inputType": "insertCompositionText",
+     "data": "に",
+     "composing": true,
+     "value": "The quick brown fox jumps over the lazy dog and a supercalifragilisticexpialidocious word ends it here",
+     "start": 4,
+     "end": 4
+    },
+    {
+     "type": "input",
+     "inputType": "insertCompositionText",
+     "data": "に",
+     "composing": true,
+     "value": "The にquick brown fox jumps over the lazy dog and a supercalifragilisticexpialidocious word ends it here",
+     "start": 5,
+     "end": 5
+    },
+    {
+     "type": "compositionupdate",
+     "inputType": null,
+     "data": "にほ",
+     "composing": null,
+     "value": "The にquick brown fox jumps over the lazy dog and a supercalifragilisticexpialidocious word ends it here",
+     "start": 4,
+     "end": 5
+    },
+    {
+     "type": "beforeinput",
+     "inputType": "insertCompositionText",
+     "data": "にほ",
+     "composing": true,
+     "value": "The にquick brown fox jumps over the lazy dog and a supercalifragilisticexpialidocious word ends it here",
+     "start": 4,
+     "end": 5
+    },
+    {
+     "type": "input",
+     "inputType": "insertCompositionText",
+     "data": "にほ",
+     "composing": true,
+     "value": "The にほquick brown fox jumps over the lazy dog and a supercalifragilisticexpialidocious word ends it here",
+     "start": 6,
+     "end": 6
+    },
+    {
+     "type": "compositionupdate",
+     "inputType": null,
+     "data": "日本",
+     "composing": null,
+     "value": "The にほquick brown fox jumps over the lazy dog and a supercalifragilisticexpialidocious word ends it here",
+     "start": 4,
+     "end": 6
+    },
+    {
+     "type": "beforeinput",
+     "inputType": "insertCompositionText",
+     "data": "日本",
+     "composing": true,
+     "value": "The にほquick brown fox jumps over the lazy dog and a supercalifragilisticexpialidocious word ends it here",
+     "start": 4,
+     "end": 6
+    },
+    {
+     "type": "input",
+     "inputType": "insertCompositionText",
+     "data": "日本",
+     "composing": true,
+     "value": "The 日本quick brown fox jumps over the lazy dog and a supercalifragilisticexpialidocious word ends it here",
+     "start": 6,
+     "end": 6
+    },
+    {
+     "type": "compositionend",
+     "inputType": null,
+     "data": "日本",
+     "composing": null,
+     "value": "The 日本quick brown fox jumps over the lazy dog and a supercalifragilisticexpialidocious word ends it here",
+     "start": 6,
+     "end": 6
+    }
+   ]
+  }
+ }
+}

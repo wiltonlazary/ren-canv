@@ -1,0 +1,326 @@
+{
+ "recorded": "Chrome/154.0.8037.57",
+ "cases": [
+  {
+   "name": "plain",
+   "on": null,
+   "by": null,
+   "act": null,
+   "log": [
+    "A blur A B",
+    "outer focusout A B",
+    "B focus B A",
+    "outer focusin B A"
+   ],
+   "focused": "B",
+   "later": [],
+   "after": "B"
+  },
+  {
+   "name": "A blur focuses C",
+   "on": "blur",
+   "by": "A",
+   "act": "focus:C",
+   "log": [
+    "A blur A B",
+    "C focus C null",
+    "outer focusin C null",
+    "outer focusout A null"
+   ],
+   "focused": "C",
+   "later": [],
+   "after": "C"
+  },
+  {
+   "name": "wrapper focusout focuses C",
+   "on": "focusout",
+   "by": "outer",
+   "act": "focus:C",
+   "log": [
+    "A blur A B",
+    "outer focusout A B",
+    "C focus C null",
+    "outer focusin C null"
+   ],
+   "focused": "C",
+   "later": [],
+   "after": "C"
+  },
+  {
+   "name": "A blur focuses A again",
+   "on": "blur",
+   "by": "A",
+   "act": "focus:A",
+   "log": [
+    "A blur A B",
+    "A focus A null",
+    "outer focusin A null",
+    "outer focusout A null"
+   ],
+   "focused": "A",
+   "later": [],
+   "after": "A"
+  },
+  {
+   "name": "B focus focuses C",
+   "on": "focus",
+   "by": "B",
+   "act": "focus:C",
+   "log": [
+    "A blur A B",
+    "outer focusout A B",
+    "B focus B A",
+    "B blur B C",
+    "outer focusout B C",
+    "C focus C B",
+    "outer focusin C B"
+   ],
+   "focused": "C",
+   "later": [],
+   "after": "C"
+  },
+  {
+   "name": "wrapper focusin focuses C",
+   "on": "focusin",
+   "by": "outer",
+   "act": "focus:C",
+   "log": [
+    "A blur A B",
+    "outer focusout A B",
+    "B focus B A",
+    "outer focusin B A",
+    "B blur B C",
+    "outer focusout B C",
+    "C focus C B",
+    "outer focusin C B"
+   ],
+   "focused": "C",
+   "later": [],
+   "after": "C"
+  },
+  {
+   "name": "B focus focuses A",
+   "on": "focus",
+   "by": "B",
+   "act": "focus:A",
+   "log": [
+    "A blur A B",
+    "outer focusout A B",
+    "B focus B A",
+    "B blur B A",
+    "outer focusout B A",
+    "A focus A B",
+    "outer focusin A B"
+   ],
+   "focused": "A",
+   "later": [],
+   "after": "A"
+  },
+  {
+   "name": "wrapper focusout focuses B",
+   "on": "focusout",
+   "by": "outer",
+   "act": "focus:B",
+   "log": [
+    "A blur A B",
+    "outer focusout A B",
+    "B focus B null",
+    "outer focusin B null"
+   ],
+   "focused": "B",
+   "later": [],
+   "after": "B"
+  },
+  {
+   "name": "A blur blurs A",
+   "on": "blur",
+   "by": "A",
+   "act": "blur:A",
+   "log": [
+    "A blur A B",
+    "outer focusout A B",
+    "B focus B A",
+    "outer focusin B A"
+   ],
+   "focused": "B",
+   "later": [],
+   "after": "B"
+  },
+  {
+   "name": "B focus blurs B",
+   "on": "focus",
+   "by": "B",
+   "act": "blur:B",
+   "log": [
+    "A blur A B",
+    "outer focusout A B",
+    "B focus B A",
+    "B blur B null",
+    "outer focusout B null"
+   ],
+   "focused": null,
+   "later": [],
+   "after": null
+  },
+  {
+   "name": "A blur disables B",
+   "on": "blur",
+   "by": "A",
+   "act": "disable:B",
+   "log": [
+    "A blur A B",
+    "outer focusout A B"
+   ],
+   "focused": null,
+   "later": [],
+   "after": null
+  },
+  {
+   "name": "wrapper focusout disables B",
+   "on": "focusout",
+   "by": "outer",
+   "act": "disable:B",
+   "log": [
+    "A blur A B",
+    "outer focusout A B"
+   ],
+   "focused": null,
+   "later": [],
+   "after": null
+  },
+  {
+   "name": "A blur removes B",
+   "on": "blur",
+   "by": "A",
+   "act": "remove:B",
+   "log": [
+    "A blur A B",
+    "outer focusout A B"
+   ],
+   "focused": null,
+   "later": [],
+   "after": null
+  },
+  {
+   "name": "A blur removes A",
+   "on": "blur",
+   "by": "A",
+   "act": "remove:A",
+   "log": [
+    "A blur A B",
+    "B focus B A",
+    "outer focusin B A"
+   ],
+   "focused": "B",
+   "later": [],
+   "after": "B"
+  },
+  {
+   "name": "wrapper focusout removes B",
+   "on": "focusout",
+   "by": "outer",
+   "act": "remove:B",
+   "log": [
+    "A blur A B",
+    "outer focusout A B"
+   ],
+   "focused": null,
+   "later": [],
+   "after": null
+  },
+  {
+   "name": "B focus removes B",
+   "on": "focus",
+   "by": "B",
+   "act": "remove:B",
+   "log": [
+    "A blur A B",
+    "outer focusout A B",
+    "B focus B A",
+    "B blur B null",
+    "outer focusout B null"
+   ],
+   "focused": null,
+   "later": [],
+   "after": null
+  },
+  {
+   "name": "B focus disables B",
+   "on": "focus",
+   "by": "B",
+   "act": "disable:B",
+   "log": [
+    "A blur A B",
+    "outer focusout A B",
+    "B focus B A",
+    "outer focusin B A"
+   ],
+   "focused": "B",
+   "later": [
+    "B blur B null",
+    "outer focusout B null"
+   ],
+   "after": null
+  },
+  {
+   "name": "A blur focuses C, C focus focuses B",
+   "on": "blur",
+   "by": "A",
+   "act": "focus:C",
+   "chain": {
+    "on": "focus",
+    "by": "C",
+    "act": "focus:B"
+   },
+   "log": [
+    "A blur A B",
+    "C focus C null",
+    "C blur C B",
+    "outer focusout C B",
+    "B focus B C",
+    "outer focusin B C",
+    "outer focusout A null"
+   ],
+   "focused": "B",
+   "later": [],
+   "after": "B"
+  },
+  {
+   "name": "B removed after",
+   "on": null,
+   "by": null,
+   "act": null,
+   "post": "remove:B",
+   "log": [
+    "A blur A B",
+    "outer focusout A B",
+    "B focus B A",
+    "outer focusin B A",
+    "B blur B null",
+    "outer focusout B null"
+   ],
+   "focused": null,
+   "later": [],
+   "after": null
+  },
+  {
+   "name": "B disabled after",
+   "on": null,
+   "by": null,
+   "act": null,
+   "post": "disable:B",
+   "log": [
+    "A blur A B",
+    "outer focusout A B",
+    "B focus B A",
+    "outer focusin B A"
+   ],
+   "focused": "B",
+   "later": [
+    "B blur B null",
+    "outer focusout B null"
+   ],
+   "after": null
+  }
+ ]
+}
