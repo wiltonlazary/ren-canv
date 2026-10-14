@@ -1,6 +1,6 @@
 {
   "name": "ren-canv",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The engine of ren-core's drawn renderers: a retained scene of the portable primitives with its own layout, portable style, text, painting into a flat command buffer, damage, hit testing, input, editing, selection, native text entry and an accessibility mirror. ren-skia and ren-three replay its frames.",
   "type": "module",
   "license": "MIT",
@@ -44,8 +44,8 @@
     "prepack": "node scripts/types.mjs"
   },
   "dependencies": {
-    "ren-core": "file:../../../ren-core/wtree/_repo_",
     "harfbuzzjs": "1.6.2",
+    "ren-core": "file:../../../ren-core/wtree/_repo_",
     "taffy-layout": "3.0.0"
   },
   "devDependencies": {
