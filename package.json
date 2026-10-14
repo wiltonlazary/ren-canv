@@ -3,8 +3,15 @@
   "version": "0.1.0",
   "description": "The engine of ren-core's drawn renderers: a retained scene of the portable primitives with its own layout, portable style, text, painting into a flat command buffer, damage, hit testing, input, editing, selection, native text entry and an accessibility mirror. ren-skia and ren-three replay its frames.",
   "type": "module",
-  "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wiltonlazary/ren-canv.git"
+  },
+  "homepage": "https://github.com/wiltonlazary/ren-canv#readme",
+  "bugs": {
+    "url": "https://github.com/wiltonlazary/ren-canv/issues"
+  },
   "sideEffects": false,
   "engines": {
     "node": ">=22.15"

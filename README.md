@@ -17,8 +17,8 @@ A renderer package subclasses `Document` and replays its frames on a surface:
 | [ren-skia](https://github.com/wiltonlazary/ren-skia) | the font file's own advances (`Sfnt`), shaped where text needs it | a CanvasKit surface |
 | [ren-three](https://github.com/wiltonlazary/ren-three) | the font file's own advances (`Sfnt`), shaped where text needs it | a 2D canvas, as a three.js texture |
 
-The package is named `ren-canv`, and
-`package.json` is `private`. Its runtime dependencies are ren-core (linked
+The package is published on npm as `@maxenve/ren-canv` under the MIT license;
+install it under its import name: `npm install ren-canv@npm:@maxenve/ren-canv`. Its runtime dependencies are ren-core (linked
 from the sibling checkout), taffy-layout (pinned; MIT) and harfbuzzjs
 (pinned to 1.6.2; MIT: HarfBuzz's WebAssembly build, of which only its
 `dist/harfbuzz.wasm` is used).
