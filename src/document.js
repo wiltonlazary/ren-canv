@@ -681,9 +681,24 @@ export class Document {
     const current = this.current;
     if (current !== null && !this.attached(current)) {
       if (this.from >= 0) this.drop();
+      // The focus trap it was in, still shown, takes the focus back.
+      /** @type {Item | null} */
+      let trap = null;
+      for (const n of this.focusPath) if (n.trap && !n.hidden && this.attached(n)) {
+        trap = n;
+        break;
+      }
       this.current = null;
       this.damage = true;
       this.lost(current);
+      if (trap !== null && this.current === null && !inertAt(trap)) {
+        // Its first focusable, else the trap itself when it takes the focus.
+        /** @type {Item[]} */
+        const order = [];
+        inputs(trap, order, NO_SEEK);
+        const next = order.length > 0 ? order[0] : takes(trap) ? trap : null;
+        if (next !== null) this.focus(next, this.keyed);
+      }
     } else if (current !== null && (current.disabled || inertAt(current))) {
       // Disabled while focused, or in a region made inert: it gives the focus up, as a DOM field does.
       if (this.from >= 0) this.drop();

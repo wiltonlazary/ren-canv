@@ -524,7 +524,9 @@ canvases: the event names, fields and semantics are the DOM's.
   the DOM's `:focus-visible`, and so does a focus from code while the last
   input was a key, not the pointer (a roving focus the arrow keys move); Enter and Space press only an Action.
 - **Focus trap.** Inside a `trap` (a View, Layout or Scroll), Tab and
-  Shift+Tab move among its own, cycling. An item's `getRootNode()` is its
+  Shift+Tab move among its own, cycling. When the focused item inside it
+  is removed, the trap, still shown, takes the focus back: its first
+  focusable, else itself when it takes the focus (a `tabIndex`). An item's `getRootNode()` is its
   Document, whose `activeElement` is the focused item, as a DOM element's
   root node. An item's `focusFirst()` and `focusLast()` focus the first
   or last item Tab reaches inside it, in document order, and return whether

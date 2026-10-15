@@ -469,6 +469,46 @@ describe('ren canv an Action holding content', () => {
     doc.close();
   });
 
+  it('takes the focus back into a trap when the focused item inside it is removed', () => {
+    const doc = make();
+    /** @type {any} */
+    const refs = {};
+    /** @type {string[]} */
+    const keys = [];
+    render(() => {
+      const shown = $signal($active(), 'button');
+      const empty = $signal($active(), false);
+      refs.shown = shown;
+      refs.empty = empty;
+      return (
+        <View>
+          <Action text="out" />
+          <View trap onKey={(/** @type {any} */ e) => keys.push(e.key)}>
+            {() => ($read(empty) ? null : <Action ref={(/** @type {any} */ n) => (refs.first = n)} text="first" />)}
+            {() => ($read(shown) === 'button' ? <Action ref={(/** @type {any} */ n) => (refs.swap = n)} text="swap" /> : <Label text="swapped" />)}
+          </View>
+          <View trap tabIndex={-1} ref={(/** @type {any} */ n) => (refs.bare = n)}>
+            {() => ($read(shown) === 'button' ? <Action ref={(/** @type {any} */ n) => (refs.only = n)} text="only" /> : null)}
+          </View>
+        </View>
+      );
+    }, doc);
+    doc.present();
+    refs.swap.focus();
+    $write(refs.shown, 'label');
+    doc.present();
+    assert.ok(doc.focused === refs.first, "the trap's first focusable");
+    doc.key('Escape');
+    assert.deepEqual(keys, ['Escape'], 'its keys still reach the trap');
+    $write(refs.shown, 'button');
+    doc.present();
+    refs.only.focus();
+    $write(refs.shown, 'label');
+    doc.present();
+    assert.ok(doc.focused === refs.bare, 'none inside: the trap itself, which takes the focus');
+    doc.close();
+  });
+
   it("focuses the first or last focusable inside an item, as ren-core's $focus asks", () => {
     const doc = make();
     /** @type {any} */
