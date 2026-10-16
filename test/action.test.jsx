@@ -662,6 +662,52 @@ describe('ren canv an Action holding content', () => {
     doc.close();
   });
 
+  it('hands a focus ring on (ring false) to the items inside it marked outer, or else the item around it marked inner, along their corners', () => {
+    const doc = make();
+    /** @type {any} */
+    const refs = {};
+    render(() => (
+      <View style={{ align: 'start', gap: 8 }}>
+        <View ref={(/** @type {any} */ n) => (refs.field = n)} style={{ ring: 'inner', radius: 6, padding: 4, direction: 'row' }}>
+          <Edit ref={(/** @type {any} */ n) => (refs.edit = n)} label="name" value="" style={{ ring: false }} />
+        </View>
+        <View ref={(/** @type {any} */ n) => (refs.card = n)} style={{ ring: 'inner', radius: 4, padding: 4 }}>
+          <Action ref={(/** @type {any} */ n) => (refs.row = n)} style={{ ring: false, direction: 'row' }}>
+            <View ref={(/** @type {any} */ n) => (refs.box = n)} style={{ ring: 'outer', width: 16, height: 16, radius: 8 }} />
+            <Label text="check" />
+          </Action>
+        </View>
+        <Action ref={(/** @type {any} */ n) => (refs.own = n)} text="own" style={{ radius: 4 }} />
+      </View>
+    ), doc);
+    /** The 2 wide ring around an item's box, if drawn: its corner radius. @param {any} item */
+    const ringOf = item => {
+      doc.present();
+      const [x, y, w, h] = box(item);
+      const c = doc.commands().find(c => c[0] === 'border' && c[7] === 2 && c[1] === x - 2 && c[2] === y - 2 && c[3] === Math.round(x + w) + 2 && c[4] === y + h + 2);
+      return c === undefined ? null : c[6];
+    };
+    refs.edit.focus();
+    assert.equal(ringOf(refs.edit), null, 'the Edit hands its ring on');
+    assert.equal(ringOf(refs.field), 8, 'its field rings it, along its corners (6 + 2)');
+    doc.focus(null);
+    refs.edit.focus();
+    doc.key('Tab');
+    assert.ok(doc.focused === refs.row);
+    assert.equal(ringOf(refs.row), null, 'the row hands its ring on');
+    assert.equal(ringOf(refs.box), 10, 'the box inside it rings it (8 + 2)');
+    assert.equal(ringOf(refs.card), null, 'an item marked outer inside it wins over one marked inner around it');
+    assert.equal(ringOf(refs.field), null, 'the field no longer');
+    doc.key('Tab');
+    assert.equal(ringOf(refs.own), 6, 'an Action keeps its own ring by default');
+    assert.equal(ringOf(refs.box), null);
+    refs.row.focus();
+    doc.press(...box(refs.own).slice(0, 2).map(v => v + 2));
+    doc.present();
+    assert.equal(ringOf(refs.box), null, 'a pointer focus rings no Action, nor what it hands to');
+    doc.close();
+  });
+
   it('keeps a text Action a leaf, and names an Action by what it holds in the mirror', () => {
     const window = new Window();
     const canvas = window.document.createElement('canvas');

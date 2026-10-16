@@ -185,7 +185,9 @@ without touching anything else:
   corner may have its own radius (fills, borders, shadows, focus rings
   and clips: `rround`, `rborder`, `rshadow`), scaled to fit the box as
   CSS scales them. The focus ring is a 2 wide stroke outside the box, as
-  the DOM's outline. Borders take each side's width and color (`edges`,
+  the DOM's outline; an item whose `ring` is false draws none, and those
+  inside it marked `'outer'`, or, with none, the nearest item around it
+  marked `'inner'`, draw it along their own corners. Borders take each side's width and color (`edges`,
   split at the corners as CSS splits them) and a style: dashed (dashes
   and gaps three widths long) or dotted (round dots), through `dash`. A
   gradient background fills the box in its corners (`gradient`): linear

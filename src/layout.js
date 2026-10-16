@@ -369,6 +369,7 @@ export function resolve(item, parent, theme, scale = 1, fonts = null) {
   r.shX = n(s.shadowX, 0);
   r.shY = n(s.shadowY, 0);
   r.shBlur = n(s.shadowBlur, 0);
+  r.ring = s.ring;
   if (contents) unbox(r);
   item.stale = false;
   return passed;

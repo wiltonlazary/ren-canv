@@ -293,6 +293,8 @@ export class Resolved {
     this.shY = 0;
     this.shBlur = 0;
     this.shColor = -1;
+    /** Its focus ring: 0 handed on, 1 its own, 2 an inner item's, 3 the focused item's around it; -1 its own. */
+    this.ring = -1;
     this.size = 17;
     this.bold = false;
     this.italic = false;

@@ -916,6 +916,31 @@ export class State {
 }
 
 /** Draws a scene into a frame and records its hit regions. */
+/**
+ * The items that draw the ring a focused item hands on (its `ring` false):
+ * the items inside it marked outer, or, with none, the nearest item around
+ * it marked inner; null when the focus shows no ring or keeps its own. A
+ * field shows its ring whenever it has the focus, an Action or a region
+ * when the keyboard gave it.
+ * @param {State} state @returns {Item[] | null}
+ */
+function handed(state) {
+  const focus = state.focus;
+  if (focus === null || !(focus.kind === EDIT || state.ring) || focus.r.ring !== 0) return null;
+  /** @type {Item[]} */
+  const out = [];
+  const inside = (/** @type {Item} */ n) => {
+    for (let c = n.first; c !== null; c = c.next) {
+      if (c.r.ring === 3) out.push(c);
+      inside(c);
+    }
+  };
+  inside(focus);
+  if (out.length > 0) return out;
+  for (let n = focus.parent; n !== null; n = n.parent) if (n.r.ring === 2) return [n];
+  return null;
+}
+
 export class Painter {
   /** @param {Fonts} fonts @param {Theme} theme @param {import('./layout.js').Boxes} boxes the layout, read as items are drawn */
   constructor(fonts, theme, boxes) {
@@ -947,6 +972,8 @@ export class Painter {
     this.loose = 0;
     /** The fixed items met in the layer being drawn, drawn after it (null: none). @type {Stacked[] | null} */
     this.pinned = null;
+    /** The items drawing the focus ring a focused item hands on (`ring: false`), this frame; null: none. @type {Item[] | null} */
+    this.ringed = null;
     /** The scrollport a sticky item is held in, left, top, right, bottom: the nearest Scroll's (`portOf`), else the viewport. */
     this.port = new Float64Array(4);
     /**
@@ -993,6 +1020,7 @@ export class Painter {
     this.bottom = state.height;
     frame.enter(0, 0, page, state.height);
     this.viewport(page, state.height);
+    this.ringed = handed(state);
     this.pinned = null;
     this.visit(root, 0, -state.page, 0);
     this.pin(page, state.height);
@@ -1111,7 +1139,7 @@ export class Painter {
     // one fill and nothing else (an empty box with a background, no border,
     // shadow or ring): then the fill's own alpha is the same picture, with no
     // offscreen layer (a pulsing skeleton).
-    const focusedBox = item === this.state.focus;
+    const focusedBox = item === this.state.focus || (this.ringed !== null && this.ringed.includes(item));
     const alone = r.opacity < 1 && item.first === null && holds(item) && r.bw === 0 && r.shColor === -1 && r.grad === null && !focusedBox;
     const layered = r.opacity < 1 && !alone;
     const bg = alone ? faded(r.bg, r.opacity) : r.bg;
@@ -1123,7 +1151,8 @@ export class Painter {
     if (context) this.stacked = null;
     if (layered) frame.layer(Math.max(0, r.opacity));
     // A field shows its ring whenever it has the focus; an Action, or a region given a tabIndex, when the keyboard gave it.
-    const focused = item === state.focus && (kind === EDIT || state.ring);
+    // An item that hands its ring on draws none; the items it hands it to draw it.
+    const focused = (item === state.focus && (kind === EDIT || state.ring) && r.ring !== 0) || (this.ringed !== null && this.ringed.includes(item));
     const edged = r.radius > 0 || r.bw > 0 || r.shColor !== -1 || focused;
     if (!hidden) {
       // The box: shadow, background, border, focus ring.
