@@ -610,6 +610,80 @@ describe('ren canv document', () => {
     doc.close();
   });
 
+  it('shows a pressed or focused style\'s cursor, after the press with no move and on a move while pressed', () => {
+    const window = new Window();
+    const canvas = window.document.createElement('canvas');
+    window.document.body.appendChild(canvas);
+    const doc = new Document(mono, { width: 200, height: 200 });
+    render(() => (
+      <View>
+        <View style={{ height: 50, cursor: 'grab', press: { cursor: 'grabbing' } }} onPress={() => {}} />
+        <Action text="go" style={{ height: 40, cursor: 'pointer', focus: { cursor: 'help' } }} />
+      </View>
+    ), doc);
+    const stop = attach(doc, /** @type {any} */ (canvas));
+    const send = (/** @type {string} */ type, /** @type {number} */ x, /** @type {number} */ y) => {
+      const e = new window.PointerEvent(type, { bubbles: true, button: 0 });
+      Object.defineProperty(e, 'offsetX', { value: x });
+      Object.defineProperty(e, 'offsetY', { value: y });
+      canvas.dispatchEvent(e);
+      return canvas.style.cursor;
+    };
+    assert.equal(send('pointermove', 10, 10), 'grab');
+    assert.equal(send('pointerdown', 10, 10), 'grabbing', 'the press shows its cursor with no move');
+    assert.equal(send('pointermove', 12, 10), 'grabbing', 'and keeps it while pressed');
+    assert.equal(send('pointerup', 12, 10), 'grab', 'the release shows the item\'s own again');
+    assert.equal(send('pointermove', 10, 70), 'pointer');
+    send('pointerdown', 10, 70);
+    send('pointerup', 10, 70);
+    assert.equal(canvas.style.cursor, 'help', 'the focused Action shows its focus style\'s cursor');
+    stop();
+    doc.close();
+  });
+
+  it('shows the cursor a frame draws under a still pointer: a restyled item, an item shown there', () => {
+    const window = new Window();
+    const canvas = window.document.createElement('canvas');
+    window.document.body.appendChild(canvas);
+    const doc = new Document(mono, { width: 200, height: 200 });
+    /** @type {any} */
+    let tool = null;
+    /** @type {any} */
+    let open = null;
+    render(() => {
+      tool = $signal($active(), 'move');
+      open = $signal($active(), false);
+      return (
+        <View>
+          <View style={() => ({ height: 50, cursor: $read(tool) })} />
+          <Show when={() => $read(open)}><View style={{ height: 50, cursor: 'pointer' }} /></Show>
+        </View>
+      );
+    }, doc);
+    const stop = attach(doc, /** @type {any} */ (canvas));
+    const at = (/** @type {number} */ y) => {
+      const e = new window.PointerEvent('pointermove', { bubbles: true });
+      Object.defineProperty(e, 'offsetX', { value: 10 });
+      Object.defineProperty(e, 'offsetY', { value: y });
+      canvas.dispatchEvent(e);
+      return canvas.style.cursor;
+    };
+    assert.equal(at(10), 'move');
+    $write(tool, 'crosshair');
+    doc.present();
+    assert.equal(canvas.style.cursor, 'crosshair', 'a restyle shows with no move');
+    assert.equal(at(70), 'default');
+    $write(open, true);
+    doc.present();
+    assert.equal(canvas.style.cursor, 'pointer', 'an item shown under the pointer shows its cursor with no move');
+    canvas.dispatchEvent(new window.PointerEvent('pointerleave'));
+    $write(open, false);
+    doc.present();
+    assert.equal(canvas.style.cursor, 'pointer', 'a pointer gone from the canvas finds nothing again');
+    stop();
+    doc.close();
+  });
+
   it('takes a new theme at once, keeping the scene, focus and state', () => {
     const doc = new Document(mono, { width: 200, height: 200, theme: { accent: 0xff112233, field: 38 } });
     render(() => (

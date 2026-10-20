@@ -581,8 +581,14 @@ canvases: the event names, fields and semantics are the DOM's.
   tells `{ type: 'move', x, y }`, whatever moved it: a layout shift, a
   scroll, a transform, an animation. It measures nothing on a frame that
   does not paint.
-- **Cursor.** The portable style's `cursor` (or a hover style's) shows on
-  the canvas over the item, as the DOM shows it.
+- **Cursor.** The portable style's `cursor` shows on the canvas over the
+  item, as the DOM shows it: a state style's while the item is in that
+  state (`focus` over `press` over `hover`, as they overlay), else its own,
+  else its nearest ancestor's. It is found on each move and again after
+  each frame at the point the pointer last moved to, so what a press or a
+  render changes under a still pointer (a pressed style, a panel opened
+  there) shows with no move; `attach` writes it to the canvas's
+  `style.cursor`.
 - **An Action holding content.** As a DOM button holds its content, an
   Action with children (not `text` alone) lays them out as a View does
   (the portable style's direction, gap, padding and alignment apply; it

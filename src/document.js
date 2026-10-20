@@ -138,14 +138,15 @@ export class Pointer {
 }
 
 /**
- * The cursor over an item: a hovered style's `cursor`, the item's own, or
- * its nearest ancestor's; over an Edit, text; else the default.
+ * The cursor over an item: its style's `cursor` in the states it is in
+ * (focus over press over hover, as they overlay), else its own, or its
+ * nearest ancestor's; over an Edit, text; else the default.
  * @param {Item | null} item
  */
 function cursorOf(item) {
   for (let n = item; n !== null; n = n.parent) {
-    const over = (n.state & HOVER) !== 0 && n.style.hover !== null ? n.style.hover.cursor : null;
-    const own = over ?? n.style.cursor;
+    const s = n.style;
+    const own = ((n.state & FOCUS) !== 0 && s.focus !== null ? s.focus.cursor : null) ?? ((n.state & PRESS) !== 0 && s.press !== null ? s.press.cursor : null) ?? ((n.state & HOVER) !== 0 && s.hover !== null ? s.hover.cursor : null) ?? s.cursor;
     if (own !== null) return own;
     if (n.kind === EDIT) return 'text';
   }
@@ -326,6 +327,11 @@ export class Document {
     this.clickButton = 0;
     /** The CSS cursor over the hovered item (its style's `cursor`, or its nearest ancestor's); the host shows it. */
     this.cursor = 'default';
+    /** Where the pointer last was over the surface (NaN: not over it), where each frame finds the cursor again. */
+    this.pointerX = NaN;
+    this.pointerY = NaN;
+    /** Called when a frame changes the cursor under a still pointer (`attach` shows it). @type {(() => void) | null} */
+    this.aimed = null;
     /** The items listening for `resize`. @type {Set<Item>} */
     this.resizing = new Set();
     /** The image sources that failed to load here: never loaded again, an Image that shows one hears `error`. @type {Set<string>} */
@@ -814,6 +820,7 @@ export class Document {
     }
     this.frames++;
     this.framed?.();
+    if (this.pointerX === this.pointerX) this.aim();
     if (this.entry !== null) this.entry.sync();
     if (this.resizing.size > 0) this.sizes();
     if (this.moving.size > 0) this.moves();
@@ -1770,8 +1777,24 @@ export class Document {
       this.present();
     }
     // Each move: a style may have changed its cursor under a still item.
+    this.pointerX = x;
+    this.pointerY = y;
     this.cursor = cursorOf(item);
     return item !== null;
+  }
+
+  /**
+   * The cursor at the point the pointer last moved to, found again after a
+   * frame: what the frame drew under a still pointer (a panel opened there,
+   * an item restyled or pressed) shows its own, as the DOM's does.
+   */
+  aim() {
+    const hits = this.painter.hits;
+    const i = hits.find(this.pointerX, this.pointerY);
+    const cursor = cursorOf(i < 0 ? null : hits.items[i]);
+    if (cursor === this.cursor) return;
+    this.cursor = cursor;
+    this.aimed?.();
   }
 
   /**
@@ -1908,6 +1931,7 @@ export class Document {
 
   /** The pointer left the surface: nothing is hovered or pressed. */
   leave() {
+    this.pointerX = this.pointerY = NaN;
     if (this.hovered !== null) this.states(this.hovered, HOVER, false, true);
     this.crossed(this.hovered, null, NaN, NaN, PLAIN_POINTER);
     this.hovered = null;
@@ -2759,14 +2783,17 @@ export function attach(renderer, canvas, options = {}) {
     const dx = mode === 1 ? along * line : mode === 2 ? along * renderer.width : along;
     if (renderer.wheel(e.offsetX, e.offsetY, dy, /** @type {any} */ (e), dx)) e.preventDefault();
   };
+  /** The hovered item's cursor, as the DOM shows an element's: after each move, and each frame that changes it. */
+  const aimed = () => {
+    const style = /** @type {any} */ (canvas).style;
+    if (style != null && style.cursor !== renderer.cursor) style.cursor = renderer.cursor;
+  };
   /** @param {{ offsetX: number, offsetY: number }} e */
   const move = e => {
     lastX = e.offsetX;
     lastY = e.offsetY;
     renderer.move(e.offsetX, e.offsetY, /** @type {any} */ (e));
-    // The hovered item's cursor, as the DOM shows an element's.
-    const style = /** @type {any} */ (canvas).style;
-    if (style != null && style.cursor !== renderer.cursor) style.cursor = renderer.cursor;
+    aimed();
   };
   /**
    * Files dragged over the canvas may drop (the drop decides who takes
@@ -2799,6 +2826,7 @@ export function attach(renderer, canvas, options = {}) {
   if (input) {
     canvas.addEventListener('pointerdown', down);
     canvas.addEventListener('pointermove', move);
+    renderer.aimed = aimed;
     canvas.addEventListener('pointerup', up);
     canvas.addEventListener('pointerleave', out);
     canvas.addEventListener('contextmenu', menu);
@@ -2910,6 +2938,7 @@ export function attach(renderer, canvas, options = {}) {
     if (input) {
       canvas.removeEventListener('pointerdown', down);
       canvas.removeEventListener('pointermove', move);
+      if (renderer.aimed === aimed) renderer.aimed = null;
       canvas.removeEventListener('pointerup', up);
       canvas.removeEventListener('pointerleave', out);
       canvas.removeEventListener('contextmenu', menu);
