@@ -1,6 +1,6 @@
 {
   "name": "ren-canv",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "The engine of ren-core's drawn renderers: a retained scene of the portable primitives with its own layout, portable style, text, painting into a flat command buffer, damage, hit testing, input, editing, selection, native text entry and an accessibility mirror. ren-skia and ren-three replay its frames.",
   "type": "module",
   "license": "MIT",
