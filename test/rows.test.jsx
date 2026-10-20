@@ -268,7 +268,7 @@ describe(`ren canv rows, as ${oracle.recorded} moves over a textarea's`, () => {
 
   it('wraps a Label\'s rows where Chrome wraps pre-wrap text, keeping its spaces, and copies a row as it is in the text', () => {
     for (const c of oracle.cases) {
-      const doc = new Document(fonts(c), { width: 600, height: 600 });
+      const doc = new Document(fonts(c), { width: 600, height: 600, behavior: 'page' });
       /** @type {any} */
       let label = null;
       render(() => <View style={{ fontSize: c.size, lineHeight: c.line / c.size }}><Label ref={(/** @type {any} */ n) => (label = n)} text={c.text} style={{ wrap: true, width: c.width }} /></View>, doc);

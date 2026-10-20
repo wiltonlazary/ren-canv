@@ -160,7 +160,8 @@ describe('ren canv an Action holding content', () => {
   });
 
   it('maps a point in a Label to the offset of its text there', () => {
-    const doc = make();
+    // Selectable text: a page's.
+    const doc = new Document(mono, { width: 300, height: 200, behavior: 'page' });
     /** @type {any} */
     let label = null;
     render(() => (

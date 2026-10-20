@@ -150,7 +150,7 @@ describe('ren canv right-to-left text', () => {
   });
 
   it('maps a point to the offset of the character there, and selects a range as its visual pieces', () => {
-    const doc = new Document(mono, { width: 300, height: 100 });
+    const doc = new Document(mono, { width: 300, height: 100, behavior: 'page' });
     /** @type {any} */
     let label = null;
     render(() => <Label ref={(/** @type {any} */ n) => (label = n)} text={MIXED} style={T} />, doc);

@@ -127,7 +127,7 @@ describe('ren canv styled runs', () => {
   });
 
   it('selects, copies and maps points to the plain text across runs', () => {
-    const doc = page();
+    const doc = new Document(mono, { width: 300, height: 200, behavior: 'page' });
     /** @type {any} */
     let label = null;
     render(() => (

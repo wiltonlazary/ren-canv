@@ -415,7 +415,8 @@ canvases: the event names, fields and semantics are the DOM's.
   own. `prevent` names default actions the canvas cancels, as ren-dom does:
   over an item that names `contextmenu` (or under one that does), the
   browser's context menu stays away, for the app's own (`cancels(type, x,
-  y)` answers for a point).
+  y)` answers for a point); elsewhere the `behavior` decides (§Behavior:
+  an app keeps it in an Edit only; `menu(x, y)` answers).
   A touch follows the style's `touchAction`, as CSS's touch-action: the
   topmost item under the press and each ancestor that sets one allow pans
   and a pinch zoom together (`touchAction(x, y)` answers the bits: 1
@@ -464,7 +465,8 @@ canvases: the event names, fields and semantics are the DOM's.
   they alone do; a focused `stopPropagation` keeps it from them. Chords
   (Ctrl, Cmd or Alt with a character) reach the handlers and edit nothing;
   `attach` lets the platform have them (copy) unless one prevents it, and
-  Ctrl or Cmd+A selects all after them. A modifier with an arrow,
+  Ctrl or Cmd+A selects all after them, as the `behavior` allows
+  (§Behavior). A modifier with an arrow,
   Backspace, Delete, Home or End (a word or line move, a word deletion)
   is the native entry's under `attach`, which edits and mirrors back;
   without one the plain key's move stands in. ArrowUp and ArrowDown move a
@@ -584,11 +586,12 @@ canvases: the event names, fields and semantics are the DOM's.
 - **Cursor.** The portable style's `cursor` shows on the canvas over the
   item, as the DOM shows it: a state style's while the item is in that
   state (`focus` over `press` over `hover`, as they overlay), else its own,
-  else its nearest ancestor's. It is found on each move and again after
-  each frame at the point the pointer last moved to, so what a press or a
-  render changes under a still pointer (a pressed style, a panel opened
-  there) shows with no move; `attach` writes it to the canvas's
-  `style.cursor`.
+  else its nearest ancestor's; over an Edit, and over the selectable text
+  the `behavior` gives the I-beam (§Behavior), `text`. It is found on each
+  move and again after each frame at the point the pointer last moved to,
+  so what a press or a render changes under a still pointer (a pressed
+  style, a panel opened there) shows with no move; `attach` writes it to
+  the canvas's `style.cursor`.
 - **An Action holding content.** As a DOM button holds its content, an
   Action with children (not `text` alone) lays them out as a View does
   (the portable style's direction, gap, padding and alignment apply; it
@@ -682,14 +685,36 @@ with their `aria-checked`, tabs as a tablist of tabs with their
 
 ## Text selection
 
-As in a browser: a press and drag across Labels selects their text in
-document order; a double press selects a word, a triple a whole Label, and
-Shift extends; Ctrl or Cmd+A selects all (the focused Edit's value, else
-the page's text); copy (the platform's shortcut or menu while the canvas
-has focus) puts the selected text on the clipboard, a line break between
-Labels. Inside an Edit the same gestures select its value. Presses on
-Actions and press targets press them instead; `style.select: 'none'`
-leaves text out (it inherits). `copied()` returns the selected text.
+Selectable text selects as in a browser: a press and drag across Labels
+selects their text in document order; a double press selects a word, a
+triple a whole Label, and Shift extends; copy (the platform's shortcut or
+menu while the canvas has focus) puts the selected text on the clipboard,
+a line break between Labels. Inside an Edit the same gestures select its
+value. Presses on Actions and press targets press them instead;
+`style.select: 'text'` opts text in and `'none'` leaves it out (both
+inherit). `copied()` returns the selected text, `selectAll()` selects as
+Ctrl or Cmd+A does.
+
+## Behavior
+
+An application does not behave as a page: the Document's `behavior`
+option (ren-core's `Behavior`, resolved by its `behaviorOf` into
+`document.behavior`) is `'app'` by default, `'page'` for a page's, or
+`{ like, ...switches }`, each switch over its `like`'s on its own:
+
+| Switch | `'app'` | `'page'` |
+| --- | --- | --- |
+| `select` | only an Edit and what `select: 'text'` opts in select; loose text does not | loose text selects too |
+| `selectAll` | Ctrl or Cmd+A selects the focused Edit's value, else the text of the `select: 'text'` element the selection (or the focus) is in, else nothing, and never the browser's page | the page's selectable text; with none, the browser's |
+| `textCursor` | the I-beam over an Edit and opted-in text only | over any selectable text |
+| `menu` | no browser context menu outside an Edit | the browser's |
+| `editMenu` | the browser's in an Edit (paste, spelling) | the same |
+| `callout` | `attach` gives the canvas `-webkit-touch-callout: none` and a transparent tap highlight | the browser's |
+
+Without `select`, `attach` also makes the canvas element itself
+unselectable (`user-select: none`); what it sets is put back when it
+stops. `prevent="contextmenu"` cancels the browser's menu under any
+behavior.
 
 ## A renderer on ren-canv
 

@@ -195,9 +195,9 @@ export const snapBorder = (w, scale) => (w > 0 ? Math.max(1, Math.floor(w * scal
  * Resolves an item's style: the theme's defaults for its kind, the text its
  * parent passes down, its shorthand props, its style and the styles of its
  * states. Returns true when what it passes down to its children changed.
- * @param {Item} item @param {Resolved | null} parent @param {Theme} theme @param {number} [scale] device pixels a logical one (borders snap to them) @param {Fonts | null} [fonts] what measures text (the typefaces a family names)
+ * @param {Item} item @param {Resolved | null} parent @param {Theme} theme @param {number} [scale] device pixels a logical one (borders snap to them) @param {Fonts | null} [fonts] what measures text (the typefaces a family names) @param {boolean} [loose] whether text no `select` style reaches is selectable (a page's, not an application's)
  */
-export function resolve(item, parent, theme, scale = 1, fonts = null) {
+export function resolve(item, parent, theme, scale = 1, fonts = null, loose = true) {
   const k = item.kind;
   const r = item.r;
   let s = item.style;
@@ -240,7 +240,7 @@ export function resolve(item, parent, theme, scale = 1, fonts = null) {
   const track = s.scrollbarTrack ?? (parent === null ? -1 : parent.track);
   // An inert region (its own or an ancestor's) takes no pointer and no selection, whatever its children say.
   const inert = item.inert || (parent !== null && parent.inert);
-  const select = !inert && (s.select >= 0 ? s.select === 1 : control ? false : parent === null || parent.select);
+  const select = !inert && (s.select >= 0 ? s.select === 1 : control ? false : parent === null ? loose : parent.select);
   const events = !inert && (s.pointerEvents >= 0 ? s.pointerEvents === 1 : parent === null || parent.events);
   const ph = c(s.placeholderColor, parent === null ? theme.muted : parent.ph);
   // The text's case inherits, but a control takes only its own, as a browser's form controls reset it.
@@ -1051,6 +1051,8 @@ export class Boxes {
     this.theme = theme;
     /** Device pixels a logical one: borders resolve to whole ones. */
     this.scale = 1;
+    /** Whether text no `select` style reaches is selectable (a Document's behavior sets it). */
+    this.select = true;
     /** The layout the items' boxes come from; an item reads its box when its `gen` differs. */
     this.gen = 0;
     /** The wrapping text in the tree, whose heights follow their widths after a layout. @type {Set<Item>} */
@@ -1208,7 +1210,7 @@ export class Boxes {
     const node = this.node(item);
     // What an item passes down changing matters to children it had before;
     // a new item's children are new too.
-    if (item.stale && resolve(item, parent, this.theme, this.scale, this.fonts) && item.boxKey !== '') down(item);
+    if (item.stale && resolve(item, parent, this.theme, this.scale, this.fonts, this.select) && item.boxKey !== '') down(item);
     // A leaf's content first: its size is part of the leaf's style.
     const box = holds(item);
     if (box) item.direct = false;

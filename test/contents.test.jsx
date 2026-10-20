@@ -21,9 +21,9 @@ const mono = {
 };
 const T = { fontSize: 10, lineHeight: 2 };
 
-/** Renders a view on a 400 × 600 page; `labels()` lists each Label's text and page box, in order. @param {() => any} view */
-function page(view) {
-  const doc = new Document(mono, { width: 400, height: 600 });
+/** Renders a view on a 400 × 600 page; `labels()` lists each Label's text and page box, in order. @param {() => any} view @param {import('ren-canv').Options} [options] */
+function page(view, options) {
+  const doc = new Document(mono, { width: 400, height: 600, ...options });
   render(view, doc);
   doc.present();
   const labels = () => {
@@ -170,7 +170,7 @@ describe('ren canv textTransform', () => {
         <View>in a view</View>
         <Edit value="typed" />
       </View>
-    ));
+    ), { behavior: 'page' });
     assert.deepEqual(texts().slice(0, 7), ['HELLO WORLD', 'mixed case', "The Quick-Brown Fox's Tail", 'STRAßE ', 'RUN', 'as given', 'IN A VIEW']);
     assert.ok(texts().includes('typed'), 'an Edit shows its value as typed');
     const label = /** @type {any} */ (doc.root.first.first);

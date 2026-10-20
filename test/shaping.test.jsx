@@ -76,7 +76,7 @@ describe('ren canv shaping', () => {
 
   it('draws, hits and selects Arabic by its clusters: a ligature shared among its letters', () => {
     const fonts = new Faces({ font: dejavu });
-    const doc = new Document(fonts, { width: 300, height: 100 });
+    const doc = new Document(fonts, { width: 300, height: 100, behavior: 'page' });
     /** @type {any} */
     let label = null;
     render(() => (

@@ -235,7 +235,8 @@ describe('ren canv: tabIndex and inert', () => {
   });
 
   it('selects no text in an inert region', () => {
-    const doc = make();
+    // A page's: its loose text selectable.
+    const doc = new Document(mono, { width: 200, height: 300, behavior: 'page' });
     /** @type {any} */
     let shut = null;
     /** @type {any} */

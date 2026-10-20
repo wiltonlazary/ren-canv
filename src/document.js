@@ -10,7 +10,7 @@
 // says whether there is anything to draw on. Text is measured through the
 // Fonts the subclass passes in.
 
-import { mount, Theme } from 'ren-core/host';
+import { mount, Theme, behaviorOf } from 'ren-core/host';
 import { Item, VIEW, LAYOUT, SCROLL, LABEL, EDIT, ACTION, IMAGE, TEXT, MARKER, HOVER, PRESS, FOCUS, kindOf, assign, touch, link, unlink, shown, editable, finite } from './scene.js';
 import { line, Boxes, measureOf, rowWidth, rowMeasure, textAt, dirOf, rowAt, follows, indent } from './layout.js';
 import { Lines, Seek, Nearest, Under, inside, wraps, xAt } from './text.js';
@@ -31,6 +31,7 @@ import { Mirror, HIDDEN } from './aria.js';
  * @property {import('ren-core/host').Tokens=} theme Theme color and metric overrides.
  * @property {number=} background The ARGB page color (the theme canvas).
  * @property {(boolean | 'demand')=} aria The accessibility mirror `attach` keeps beside the canvas: always (true, the default), never (false), or once a user activates its hidden "Enable accessibility" button ('demand').
+ * @property {import('ren-core/host').Behavior=} behavior How the page behaves under the user's hands (ren-core's `behaviorOf`): as an application ('app', the default: loose text not selectable, Ctrl or Cmd+A and the I-beam only in an Edit or a `select: 'text'` element, the browser's context menu only in an Edit, no touch callout), as a page ('page'), or `like` one with switches of its own.
  * @property {boolean=} fit Size the page to its content (its max-content width and its height) instead of `width` and `height`: a panel.
  * @property {import('./engine.js').LayoutPort=} layout Where the layout engine (Taffy, or one `useLayout` set) lays the page out: in this thread (the default, after `loadLayout()`), or in the worker a `remoteLayout(port)` reaches (`serveLayout` there). With a worker, a change that moves boxes paints when its answer comes.
  */
@@ -140,17 +141,34 @@ export class Pointer {
 /**
  * The cursor over an item: its style's `cursor` in the states it is in
  * (focus over press over hover, as they overlay), else its own, or its
- * nearest ancestor's; over an Edit, text; else the default.
- * @param {Item | null} item
+ * nearest ancestor's; over an Edit, text; else `none` (the default).
+ * @param {Item | null} item @param {string} [none]
  */
-function cursorOf(item) {
+function cursorOf(item, none = 'default') {
   for (let n = item; n !== null; n = n.parent) {
     const s = n.style;
     const own = ((n.state & FOCUS) !== 0 && s.focus !== null ? s.focus.cursor : null) ?? ((n.state & PRESS) !== 0 && s.press !== null ? s.press.cursor : null) ?? ((n.state & HOVER) !== 0 && s.hover !== null ? s.hover.cursor : null) ?? s.cursor;
     if (own !== null) return own;
     if (n.kind === EDIT) return 'text';
   }
-  return 'default';
+  return none;
+}
+
+/**
+ * The element around an item (or the item) whose own style opts its text in
+ * to selection (`select: 'text'`), when the nearest one that sets `select`
+ * does; else null.
+ * @param {Item} item
+ */
+function regionOf(item) {
+  for (let n = /** @type {Item | null} */ (item); n !== null; n = n.parent) if (n.style.select >= 0) return n.style.select === 1 ? n : null;
+  return null;
+}
+
+/** Whether `item` is `outer` or inside it. @param {Item} item @param {Item} outer */
+function within(item, outer) {
+  for (let n = /** @type {Item | null} */ (item); n !== null; n = n.parent) if (n === outer) return true;
+  return false;
 }
 
 /** Makes a subtree's items belong to a Document. @param {Item} item @param {Document} owner */
@@ -309,6 +327,10 @@ export class Document {
     this.upstream = null;
     /** When `attach` mirrors the scene for assistive technology. */
     this.aria = options.aria ?? true;
+    /** How the page behaves under the user's hands: each switch of its `behavior`. @type {import('ren-core/host').Switches} */
+    this.behavior = behaviorOf(options.behavior);
+    // Text no `select` style reaches is selectable as the behavior says.
+    this.boxes.select = this.behavior.select;
     /** The accessibility mirror, while there is one. @type {Mirror | null} */
     this.mirror = null;
     /** True when focus came from the keyboard, so an action shows its ring. */
@@ -1463,6 +1485,20 @@ export class Document {
   }
 
   /**
+   * Whether the browser's context menu opens at a point: in an Edit as the
+   * behavior's `editMenu` says, elsewhere as its `menu` says, and never
+   * where an item cancels it (`prevent="contextmenu"`).
+   * @param {number} x @param {number} y
+   */
+  menu(x, y) {
+    if (this.cancels('contextmenu', x, y)) return false;
+    const hits = this.painter.hits;
+    const i = hits.find(x, y);
+    for (let n = i < 0 ? null : hits.items[i]; n !== null; n = n.parent) if (n.kind === EDIT) return this.behavior.editMenu;
+    return this.behavior.menu;
+  }
+
+  /**
    * The press or focus target of a point (an Edit, an Action, an item with a
    * press handler), as its hit region's index, or -1: the topmost box drawn
    * there, or its nearest ancestor that is one, as the DOM finds the element
@@ -1682,7 +1718,12 @@ export class Document {
     if (this.focusItem !== null && !kept.includes(this.focusItem)) this.focusItem = null;
   }
 
-  /** Selects all: the focused Edit's value, else all the selectable text of the page. */
+  /**
+   * Selects all: the focused Edit's value, else all the selectable text of
+   * the page; with the behavior's `selectAll` off, all the text of the
+   * `select: 'text'` element the selection (or the focus) is in, else
+   * nothing. Returns whether it selected.
+   */
   selectAll() {
     this.present();
     const item = this.current;
@@ -1691,7 +1732,15 @@ export class Document {
       return true;
     }
     const order = /** @type {Item[]} */ ([]);
-    texts(this.root, order);
+    if (this.behavior.selectAll) texts(this.root, order);
+    else {
+      const at = this.anchorItem ?? item;
+      const region = at === null ? null : regionOf(at);
+      if (region === null) return false;
+      if (region.kind === LABEL || region.kind === TEXT) {
+        if (region.r.select && region.rows !== null && !region.hidden) order.push(region);
+      } else texts(region, order);
+    }
     if (order.length === 0) return false;
     const last = /** @type {Item} */ (order.at(-1));
     this.selectText(order[0], 0, last, last.text.length);
@@ -1779,7 +1828,7 @@ export class Document {
     // Each move: a style may have changed its cursor under a still item.
     this.pointerX = x;
     this.pointerY = y;
-    this.cursor = cursorOf(item);
+    this.cursor = this.cursorAt(item, x, y);
     return item !== null;
   }
 
@@ -1791,10 +1840,27 @@ export class Document {
   aim() {
     const hits = this.painter.hits;
     const i = hits.find(this.pointerX, this.pointerY);
-    const cursor = cursorOf(i < 0 ? null : hits.items[i]);
+    const cursor = this.cursorAt(i < 0 ? null : hits.items[i], this.pointerX, this.pointerY);
     if (cursor === this.cursor) return;
     this.cursor = cursor;
     this.aimed?.();
+  }
+
+  /**
+   * The cursor at a point over its pointer target (null: none): over
+   * selectable text inside that target that shows the I-beam (any, with the
+   * behavior's `textCursor`; else only a `select: 'text'` element's), text
+   * unless a style there names its own; else the target's.
+   * @param {Item | null} item @param {number} x @param {number} y
+   */
+  cursorAt(item, x, y) {
+    const texts = this.painter.texts;
+    const t = texts.n === 0 ? -1 : texts.find(x, y);
+    if (t >= 0) {
+      const text = texts.items[t];
+      if ((this.behavior.textCursor || regionOf(text) !== null) && (item === null || within(text, item))) return cursorOf(text, 'text');
+    }
+    return cursorOf(item);
   }
 
   /**
@@ -2670,10 +2736,37 @@ export function render(view, target, options) {
  */
 
 /**
+ * Sets the CSS a behavior gives the element the user touches (the canvas):
+ * no long-press callout or tap highlight without `callout`, and the element
+ * itself not selectable without `select`. Returns the function that puts
+ * back what was there.
+ * @param {any} element @param {import('ren-core/host').Switches} behavior
+ */
+function dress(element, behavior) {
+  const style = element?.style;
+  if (style == null || typeof style.setProperty !== 'function') return () => {};
+  /** @type {[string, string][]} */
+  const set = [];
+  if (!behavior.callout) set.push(['-webkit-touch-callout', 'none'], ['-webkit-tap-highlight-color', 'transparent']);
+  if (!behavior.select) set.push(['user-select', 'none'], ['-webkit-user-select', 'none']);
+  const was = set.map(([name]) => String(style.getPropertyValue(name) ?? ''));
+  for (const [name, value] of set) style.setProperty(name, value);
+  return () => {
+    set.forEach(([name, value], i) => {
+      if (style.getPropertyValue(name) !== value) return;
+      if (was[i] === '') style.removeProperty(name);
+      else style.setProperty(name, was[i]);
+    });
+  };
+}
+
+/**
  * Routes a canvas element's pointer, key and wheel events to a renderer;
  * returns the function that stops. In a document it also adds, beside the
  * canvas, the native text entry of the focused Edit (entry.js) and the
- * accessibility mirror (aria.js; see the `aria` option).
+ * accessibility mirror (aria.js; see the `aria` option). The canvas takes
+ * the CSS its behavior asks (no touch callout, not selectable itself) until
+ * it stops.
  * With `input: false` it adds only the entry and the mirror: a host that
  * routes the canvas's input itself (ren-three, several pages on one canvas).
  * It keeps the renderer's `shiftX`/`shiftY` the canvas's place past the
@@ -2769,9 +2862,10 @@ export function attach(renderer, canvas, options = {}) {
   };
   /** @param {{ key: string, shiftKey: boolean, ctrlKey: boolean, metaKey: boolean, altKey: boolean, preventDefault(): void }} e */
   const key = e => {
-    // Chords reach the handlers too (a launcher's Ctrl+K); unless one prevents it, Ctrl or Cmd+A selects all.
+    // Chords reach the handlers too (a launcher's Ctrl+K); unless one prevents it, Ctrl or Cmd+A selects all,
+    // and, with the behavior's `selectAll` off, never the browser's page.
     if (renderer.key(e.key, e.shiftKey, e)) e.preventDefault();
-    else if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'a' || e.key === 'A') && renderer.selectAll()) e.preventDefault();
+    else if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'a' || e.key === 'A') && (renderer.selectAll() || !renderer.behavior.selectAll)) e.preventDefault();
   };
   /** @param {{ offsetX: number, offsetY: number, deltaY: number, preventDefault(): void }} e */
   const wheel = e => {
@@ -2819,10 +2913,11 @@ export function attach(renderer, canvas, options = {}) {
   /** @param {{ offsetX: number, offsetY: number }} e */
   const up = e => renderer.release(e.offsetX, e.offsetY, /** @type {any} */ (e));
   const out = () => renderer.leave();
-  /** The browser's context menu stays away where the app shows its own (`prevent="contextmenu"`). @param {{ offsetX: number, offsetY: number, preventDefault(): void }} e */
+  /** The browser's context menu opens only where the behavior keeps it, and the app shows none of its own (`prevent="contextmenu"`). @param {{ offsetX: number, offsetY: number, preventDefault(): void }} e */
   const menu = e => {
-    if (renderer.cancels('contextmenu', e.offsetX, e.offsetY)) e.preventDefault();
+    if (!renderer.menu(e.offsetX, e.offsetY)) e.preventDefault();
   };
+  const undress = input ? dress(canvas, renderer.behavior) : null;
   if (input) {
     canvas.addEventListener('pointerdown', down);
     canvas.addEventListener('pointermove', move);
@@ -2935,6 +3030,7 @@ export function attach(renderer, canvas, options = {}) {
       if (renderer.mirror === mirror) renderer.mirror = null;
       mirror = null;
     }
+    undress?.();
     if (input) {
       canvas.removeEventListener('pointerdown', down);
       canvas.removeEventListener('pointermove', move);
