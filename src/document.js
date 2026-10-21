@@ -12,9 +12,9 @@
 
 import { mount, Theme, behaviorOf, TEXT as WORDS } from 'ren-core/host';
 import { Item, VIEW, LAYOUT, SCROLL, LABEL, EDIT, ACTION, IMAGE, TEXT, MARKER, HOVER, PRESS, FOCUS, kindOf, assign, touch, link, unlink, shown, editable, finite } from './scene.js';
-import { line, Boxes, measureOf, rowWidth, rowMeasure, textAt, dirOf, rowAt, follows, indent } from './layout.js';
-import { Lines, Seek, Nearest, Under, inside, wraps, xAt } from './text.js';
-import { Painter, decode } from './draw.js';
+import { line, Boxes, measureOf, rowWidth, rowMeasure, textAt, dirOf, rowAt, follows, indent, holds } from './layout.js';
+import { Lines, Seek, Nearest, Under, inside, wraps, xAt, Face } from './text.js';
+import { Painter, decode, captionOf, rowLeft } from './draw.js';
 import { Entry } from './entry.js';
 import { Mirror, HIDDEN } from './aria.js';
 import { historyOf, TYPED, ERASED, OTHER } from './history.js';
@@ -1521,6 +1521,28 @@ export class Document {
   }
 
   /**
+   * `offset` in an Action's own text, laid out as its caption (`captionOf`).
+   * @param {Item} item @param {number} dx @param {number} dy @param {boolean} under
+   */
+  captioned(item, dx, dy, under) {
+    const r = item.r;
+    const text = item.text;
+    const [shown, left, top, width] = captionOf(this.fonts, text, r, item.w - r.bL - r.bR - r.pl - r.pr, item.h - r.bT - r.bB - r.pt - r.pb);
+    const rows = typeof shown === 'string' ? [shown] : shown;
+    const y = dy - top;
+    if (y < 0) return 0;
+    const i = Math.floor(y / line(r));
+    if (i >= rows.length) return text.length;
+    let start = 0;
+    for (let k = 0; k < i; k++) start += rows[k].length + 1;
+    const row = rows[i];
+    const m = new Face(this.fonts, r.size, r.face);
+    const x = dx - left - rowLeft(this.fonts, row, r, width);
+    const hit = under ? Under(m, row, start, x, r.dir) : -1;
+    return start + (hit >= 0 ? hit : Nearest(m, row, start, x, r.dir));
+  }
+
+  /**
    * A press's selection in the selectable text under a point (with `only`,
    * in that text alone): a caret there, which a drag extends; a double
    * press the word there, a triple the whole text; Shift extends the
@@ -1653,9 +1675,9 @@ export class Document {
     return last;
   }
 
-  /** Whether a text selects: its style's `select` (or the behavior's), or `selectOnly` opened it. @param {Item} item */
+  /** Whether a text selects: its style's `select` (or the behavior's), or `selectOnly` opened it (an Action's own text only then). @param {Item} item */
   selectable(item) {
-    return item.r.select || item === this.opted;
+    return (item.r.select && item.kind !== ACTION) || item === this.opted;
   }
 
   /**
@@ -1704,6 +1726,7 @@ export class Document {
    * @param {Item} item @param {number} dx @param {number} dy @param {boolean} [under]
    */
   offset(item, dx, dy, under = false) {
+    if (item.kind === ACTION) return this.captioned(item, dx, dy, under);
     const rows = item.rows;
     const starts = item.starts;
     if (rows === null || starts === null || rows.length === 0) return 0;
@@ -1873,8 +1896,8 @@ export class Document {
 
   /**
    * The static text under a pointer event's point (its `x`, `y`), as the
-   * root's text actions find it (ren-core's `textAt`): a Label's or a run of
-   * text's whole text, selectable or not, `pressed` when an Action or
+   * root's text actions find it (ren-core's `textAt`): a Label's, a run of
+   * text's or an Action's own whole text, selectable or not, `pressed` when an Action or
    * another press target holds it; null over no text, over an Edit or text
    * an Edit holds, or where a box lies over the text.
    * @param {any} event
@@ -1898,8 +1921,8 @@ export class Document {
   }
 
   /**
-   * Opens selection on one text (a Label, or the text node a run of text
-   * starts) and selects all of it, as the root's text actions' `select`
+   * Opens selection on one text (a Label, the text node a run of text
+   * starts, or an Action's own text) and selects all of it, as the root's text actions' `select`
    * (ren-core's `selectText`): it selects while open, whatever its style or
    * the behavior say, and a drag in it selects within it. A press outside
    * it, Escape, or the function returned ends it, and the selection in it
@@ -1908,9 +1931,10 @@ export class Document {
    * @returns {() => void}
    */
   selectOnly(node) {
-    if (!(node instanceof Item) || (node.kind !== LABEL && node.kind !== TEXT) || node.owner !== this || !this.attached(node)) return () => {};
+    if (!(node instanceof Item) || (node.kind !== LABEL && node.kind !== TEXT && node.kind !== ACTION) || node.owner !== this || !this.attached(node)) return () => {};
     this.present();
-    if (node.rows === null) return () => {};
+    // An Action's own text (no content of its own), else a laid out text.
+    if (node.kind === ACTION ? holds(node) || node.text === '' : node.rows === null) return () => {};
     this.unopen();
     if (this.current !== null && this.current.kind === EDIT) this.focus(null);
     const opening = {};
@@ -2885,7 +2909,8 @@ function single(key) {
 /**
  * Collects the shown selectable text below `item` (Labels and text nodes),
  * in order; `opted` (the text `selectOnly` opened) selects too, the
- * one text of an Action that does (an Action's text is not selectable).
+ * one text of an Action that does, its own or one it holds (an Action's
+ * text is not selectable).
  * @param {Item} item @param {Item[]} out @param {Item | null} opted
  */
 function texts(item, out, opted) {
@@ -2896,7 +2921,7 @@ function texts(item, out, opted) {
       if (c.kind === LABEL || !follows(c)) out.push(c);
     }
     else if (c.kind !== EDIT && c.kind !== ACTION) texts(c, out, opted);
-    else if (c.kind === ACTION && opted !== null && opted.rows !== null && within(opted, c)) out.push(opted);
+    else if (c.kind === ACTION && opted !== null && (c === opted || (opted.rows !== null && within(opted, c)))) out.push(opted);
   }
 }
 

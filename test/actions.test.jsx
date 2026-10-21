@@ -287,7 +287,7 @@ describe('ren canv text actions', () => {
     doc.close();
   });
 
-  it('finds the text under a pointer event, pressed in an Action or a press target, and none over an Edit or nothing', () => {
+  it("finds the text under a pointer event, pressed in an Action (its own too) or a press target, and none over an Edit or nothing", () => {
     /** @type {any[]} */
     const found = [];
     const { doc, refs } = page(r => (
@@ -304,7 +304,7 @@ describe('ren canv text actions', () => {
     doc.secondary(...middle(refs.edit), { button: 2 });
     assert.equal(found.pop(), null);
     doc.secondary(...middle(refs.action), { button: 2 });
-    assert.equal(found.pop(), null, 'an Action\'s own text is no text item');
+    assert.deepEqual(told(found.pop(), refs.action), { node: true, text: 'Go', pressed: true }, "an Action's own text");
     doc.secondary(...middle(refs.pay), { button: 2 });
     assert.deepEqual(told(found.pop(), refs.pay), { node: true, text: 'Pay', pressed: true }, "an Action's label");
     doc.secondary(...middle(refs.amount), { button: 2 });
@@ -419,6 +419,54 @@ describe('ren canv text actions', () => {
     doc.press(x + 12, y);
     doc.release(x + 12, y);
     assert.equal(presses, 3);
+    doc.close();
+  });
+
+  it("selects in an Action's own text once opened, pressing, focusing and clicking nothing until it ends", () => {
+    let presses = 0;
+    /** @type {any} */
+    let hit = null;
+    const { doc, refs } = page(r => (
+      <View onPointerDown={(/** @type {any} */ e) => (hit = textAt(e))}>
+        <Action ref={e => (r.action = e)} text="hello world" onPress={() => presses++} style={{ align: 'start' }} />
+      </View>
+    ));
+    const box = refs.action.getBoundingClientRect();
+    const y = box.y + box.height / 2;
+    // Where its text starts: its content box's left (aligned to the start).
+    const texts = doc.painter.texts;
+    let x = -1;
+    for (let i = 0; i < texts.n; i++) if (texts.items[i] === refs.action) x = texts.box[i * 6 + 4];
+    assert.ok(x >= box.x, 'its text is a text the pointer reaches');
+    doc.secondary(x + 12, y, { button: 2 });
+    assert.equal(hit?.node === refs.action && hit.pressed, true);
+    let release = /** @type {() => void} */ (selectText(refs.action));
+    assert.equal(selectedText(refs.action), 'hello world', 'all of it is selected');
+    assert.equal(doc.selectAll(), true);
+    assert.equal(doc.copied(), 'hello world');
+    assert.equal(doc.cursorAt(refs.action, x + 12, y), 'text', 'with the I-beam over it');
+    doc.press(x + 12, y);
+    assert.equal(doc.pressed === null && doc.current === null && (refs.action.state & 2) === 0, true, 'the Action is not pressed or focused');
+    doc.move(x + 27, y);
+    doc.release(x + 27, y);
+    assert.equal(selectedText(refs.action), 'llo');
+    assert.equal(presses, 0, 'nor clicked');
+    // It paints the selection behind its text.
+    const shown = doc.commands().some((/** @type {any[]} */ c) => c[0] === 'rect' && c[1] === x + 10 && c[3] === x + 25);
+    assert.equal(shown, true, 'the part selected is painted');
+    doc.secondary(x + 12, y, { button: 2 });
+    assert.equal(selectedText(refs.action), 'llo', 'a right press inside keeps it');
+    doc.key('Escape');
+    assert.equal(selectedText(refs.action), '');
+    doc.press(x + 12, y);
+    doc.release(x + 12, y);
+    assert.deepEqual([presses, doc.current === refs.action], [1, true], 'after Escape it presses again');
+    // Its release ends it too.
+    release = /** @type {() => void} */ (selectText(refs.action));
+    release();
+    doc.press(x + 12, y);
+    doc.release(x + 12, y);
+    assert.equal(presses, 2);
     doc.close();
   });
 

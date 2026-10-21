@@ -614,8 +614,8 @@ canvases: the event names, fields and semantics are the DOM's.
   centers them by default) and paints them inside it. It stays one target:
   a press anywhere on it presses it and focuses it, its content is not a
   target of its own (unless an Edit, an Action or a handler makes it one)
-  and its text is not selectable; its hover, press and focus states, keys
-  and focus ring are a text Action's. The accessibility mirror names it by
+  and its text is not selectable (until `selectText` opens it); its hover,
+  press and focus states, keys and focus ring are a text Action's. The accessibility mirror names it by
   its `label`, else by the text it holds. An item's `label` reads that
   name, the DOM's accessible name: the label given, else, on an Action or
   an item whose role ARIA names by its content (radio, tab, option,
@@ -738,18 +738,20 @@ give them (`ren-core/host`'s `EDIT` and `TEXT`):
   value. At most 100 steps are kept.
 - **The root's**, on the Document (an item's `getRootNode()`): `at(event)`
   (`textAt`) is the static text under a pointer event's point, `{ node,
-  text, pressed }` with a Label's (or a run of text's) whole text,
-  selectable or not, `pressed` when an Action or another press target holds
-  it (a button's label, a pressable row's amount: the application's menu
-  decides whether to offer it); null over no text, an Edit or text an Edit
-  holds, or a box lying over the text. `select(node)` (`selectText`) opens
-  selection on that one text and selects all of it: it selects while open
-  whatever its style and the behavior say (the I-beam over it, Ctrl or
-  Cmd+A all of it, an Action's text too), a press in it places a caret
+  text, pressed }` with a Label's (a run of text's, or an Action's own
+  `text`) whole text, selectable or not, `pressed` when an Action or
+  another press target holds it (a button's label, a pressable row's
+  amount: the application's menu decides whether to offer it); null over
+  no text, an Edit or text an Edit holds, or a box lying over the text.
+  `select(node)` (`selectText`) opens selection on that one text and
+  selects all of it: it selects while open whatever its style and the
+  behavior say (the I-beam over it, Ctrl or Cmd+A all of it, an Action's
+  text too, its own painted as a Label's), a press in it places a caret
   there (a double press a word, a triple all of it) and a drag selects
-  within it, pressing, focusing and clicking nothing that holds it; a press
-  outside it, Escape or the function it returns ends it and the selection
-  in it, and what holds it presses again; a focused Edit gives up the focus. `selected()` (`selectedText`) is `copied()`: a focused
+  within it, pressing, focusing and clicking nothing that holds it; a
+  press outside it, Escape or the function it returns ends it and the
+  selection in it, and what holds it presses again; a focused Edit gives
+  up the focus. `selected()` (`selectedText`) is `copied()`: a focused
   Edit's selection ('' in a secret one), else the text selection.
 
 ## Behavior

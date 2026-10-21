@@ -46,6 +46,50 @@ import { argb, styled } from 'ren-core/host';
 /** @typedef {import('./text.js').Fonts} Fonts */
 /** @typedef {import('ren-core/host').Theme} Theme */
 
+/**
+ * Where an Action's caption sits in its content box (`cw` by `ch`), as
+ * the DOM lays it out: one flex item (a column unless its direction is a
+ * row), placed along by `justify` (the center unset) and across by
+ * `align`; stretched across, as wide as the box, else as its widest line.
+ * Its rows (split at line breaks: one string for one line), and its left,
+ * top and width from the content box's origin.
+ * @param {Fonts} fonts @param {string} text @param {Resolved} r @param {number} cw @param {number} ch
+ * @returns {[readonly string[] | string, number, number, number]}
+ */
+export function captionOf(fonts, text, r, cw, ch) {
+  const rows = text.indexOf('\n') < 0 ? text : text.split('\n');
+  const tall = (typeof rows === 'string' ? 1 : rows.length) * line(r);
+  const j = r.justify < 0 ? 1 : r.justify;
+  // Along: start (between, with one item), center (around, evenly), end.
+  const along = j === 0 || j === 3 ? 0 : j === 2 ? 1 : 0.5;
+  const a = r.align;
+  const across = a === 0 || a === 3 ? 0 : a === 2 ? 1 : 0.5;
+  const wide = () => {
+    let most = 0;
+    for (const row of typeof rows === 'string' ? [rows] : rows) most = Math.max(most, fonts.width(row, r.size, r.face));
+    return most;
+  };
+  if (r.row) {
+    const width = wide();
+    return [rows, (cw - width) * along, (ch - tall) * across, width];
+  }
+  if (a === 3) return [rows, 0, (ch - tall) * along, cw];
+  const width = wide();
+  return [rows, (cw - width) * across, (ch - tall) * along, width];
+}
+
+/**
+ * Where a caption's row starts in its block `width` wide, as `lines`
+ * aligns it by `textAlign`.
+ * @param {Fonts} fonts @param {string} text @param {Resolved} r @param {number} width
+ */
+export function rowLeft(fonts, text, r, width) {
+  const align = r.textAlign;
+  if (align === 0) return 0;
+  const advance = fonts.width(text, r.size, r.face);
+  return align === 1 ? (width - advance) / 2 : width - advance;
+}
+
 export const TEXT_OP = 0;
 export const RECT = 1;
 export const ROUND = 2;
@@ -1255,8 +1299,11 @@ export class Painter {
         frame.leave();
         // Every text the pointer reaches, selectable or not (the Document asks which are: `selectable`).
         if (r.events) this.texts.add(item, Math.max(x, this.left), Math.max(top, this.top), Math.min(x + w, this.right), Math.min(bottom, this.bottom), cx, cy);
-      } else if (input) this.control(item, x, top, w, bottom, cx, cy, cw, ch);
-      else if (kind === IMAGE) {
+      } else if (input) {
+        this.control(item, x, top, w, bottom, cx, cy, cw, ch);
+        // An Action's own text is a text the pointer reaches too (the root's text actions find it; selectText opens it).
+        if (kind === ACTION && r.events && item.text !== '') this.texts.add(item, Math.max(x, this.left), Math.max(top, this.top), Math.min(x + w, this.right), Math.min(bottom, this.bottom), cx, cy);
+      } else if (kind === IMAGE) {
         if (item.source !== null) frame.image(item.source, cx, cy, cx + cw, cy + ch, r.fit);
       } else if (kind === SHAPE) this.figures(item, cx, cy, cw, ch);
       // A control's text sits on its rounded fill: typing damages that edge too.
@@ -1740,25 +1787,35 @@ export class Painter {
    * @param {string} text @param {Resolved} r @param {number} cx @param {number} cy @param {number} cw @param {number} ch
    */
   caption(text, r, cx, cy, cw, ch) {
-    const rows = text.indexOf('\n') < 0 ? text : text.split('\n');
-    const tall = (typeof rows === 'string' ? 1 : rows.length) * line(r);
-    const j = r.justify < 0 ? 1 : r.justify;
-    // Along: start (between, with one item), center (around, evenly), end.
-    const along = j === 0 || j === 3 ? 0 : j === 2 ? 1 : 0.5;
-    const a = r.align;
-    const across = a === 0 || a === 3 ? 0 : a === 2 ? 1 : 0.5;
-    const wide = () => {
-      let most = 0;
-      for (const row of typeof rows === 'string' ? [rows] : rows) most = Math.max(most, this.fonts.width(row, r.size, r.face));
-      return most;
-    };
-    if (r.row) {
-      const width = wide();
-      this.lines(rows, r, cx + (cw - width) * along, width, cy + (ch - tall) * across);
-    } else if (a === 3) this.lines(rows, r, cx, cw, cy + (ch - tall) * along);
-    else {
-      const width = wide();
-      this.lines(rows, r, cx + (cw - width) * across, width, cy + (ch - tall) * along);
+    const [rows, dx, dy, width] = captionOf(this.fonts, text, r, cw, ch);
+    this.lines(rows, r, cx + dx, width, cy + dy);
+  }
+
+  /**
+   * The selection in an Action's own text (`selectText` opened on it),
+   * behind its caption's rows: a rectangle a line high on each row it
+   * reaches.
+   * @param {Item} item @param {Resolved} r @param {number} cx @param {number} cy @param {number} cw @param {number} ch
+   */
+  marked(item, r, cx, cy, cw, ch) {
+    const frame = this.frame;
+    const fonts = this.fonts;
+    const [shown, dx, dy, width] = captionOf(fonts, item.text, r, cw, ch);
+    const rows = typeof shown === 'string' ? [shown] : shown;
+    const m = new Face(fonts, r.size, r.face);
+    const height = line(r);
+    const color = item.get('selection') ?? this.theme.selection;
+    let start = 0;
+    for (let i = 0; i < rows.length; i++) {
+      const text = rows[i];
+      const a = Math.max(item.from, start) - start;
+      const b = Math.min(item.to, start + text.length) - start;
+      if (a < b) {
+        const left = cx + dx + rowLeft(fonts, text, r, width);
+        const pairs = marks(m, text, start, a, b, MARKS, r.dir);
+        for (let k = 0; k < pairs.length; k += 2) frame.rect(left + pairs[k], cy + dy + i * height, left + pairs[k + 1], cy + dy + (i + 1) * height, color);
+      }
+      start += text.length + 1;
     }
   }
 
@@ -1903,6 +1960,7 @@ export class Painter {
     const multi = edit && item.lines > 1;
     frame.enter(x + r.bL, top + r.bT, x + w - r.bR, bottom - r.bB);
     if (!edit) {
+      if (item.from >= 0) this.marked(item, r, cx, cy, cw, ch);
       this.caption(item.text, r, cx, cy, cw, ch);
       frame.leave();
       return;
