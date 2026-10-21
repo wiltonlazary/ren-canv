@@ -6,8 +6,9 @@
 // resolve, at layout, into `r`: the concrete box, paint and text it is drawn
 // with (layout.js).
 
-import { Style, styled, argb, development, diagnose } from 'ren-core/host';
+import { Style, styled, argb, development, diagnose, EDIT as FIELD } from 'ren-core/host';
 import { cased } from './text.js';
+import { historyOf } from './history.js';
 import { direction } from './bidi.js';
 
 /** Integer kinds of scene items. */
@@ -783,7 +784,7 @@ export class Item {
    */
   offsetAt(x, y) {
     const owner = this.owner;
-    if (owner === null) return -1;
+    if (owner === null || !owner.selectable(this)) return -1;
     const texts = owner.painter.texts;
     for (let i = texts.n - 1; i >= 0; i--) {
       if (texts.items[i] !== this) continue;
@@ -1006,6 +1007,18 @@ export class Item {
     }
   }
 
+  /**
+   * An Edit's actions (ren-core's EDIT, which `editOf(ref)` reads): what an
+   * application's own menu does to the field; undefined on any other item.
+   * @returns {import('ren-core/host').EditActions | undefined}
+   */
+  get [FIELD]() {
+    if (this.kind !== EDIT) return undefined;
+    let actions = ACTIONS.get(this);
+    if (actions === undefined) ACTIONS.set(this, (actions = actionsOf(this)));
+    return actions;
+  }
+
   /** Keeps the pointer's moves and its release on this item until the release, as an element's. @param {number} [id] */
   setPointerCapture(id) {
     void id;
@@ -1023,6 +1036,38 @@ export class Item {
     void id;
     return this.owner !== null && this.owner.grabbed === this;
   }
+}
+
+/** Each Edit's actions, made on first use. @type {WeakMap<Item, import('ren-core/host').EditActions>} */
+const ACTIONS = new WeakMap();
+
+/**
+ * An Edit's actions over its Document: its value and selection as an
+ * input's (kept while it has no focus), `replace` as the user's edit
+ * (onChange hears it, its history keeps it, focused or not), and its undo
+ * history.
+ * @param {Item} item
+ * @returns {import('ren-core/host').EditActions}
+ */
+function actionsOf(item) {
+  return {
+    value: () => item.draft,
+    selection: () => ({ start: item.selectionStart, end: item.selectionEnd, direction: item.selectionDirection }),
+    setSelection: (start, end, direction) => item.setSelectionRange(start, end, direction),
+    replace: text => void item.owner?.replace(item, String(text)),
+    selectAll: () => item.setSelectionRange(0, item.draft.length),
+    undo: () => item.owner !== null && item.owner.undo(item),
+    redo: () => item.owner !== null && item.owner.redo(item),
+    canUndo: () => editable(item) && (historyOf(item)?.at ?? 0) > 0,
+    canRedo: () => {
+      const h = historyOf(item);
+      return editable(item) && h !== null && h.at < h.steps.length;
+    },
+    focus: () => item.focus(),
+    secret: () => item.secret,
+    readOnly: () => item.readOnly,
+    disabled: () => item.disabled,
+  };
 }
 
 /** Marks an item and every ancestor for layout. @param {Item} item */
@@ -1114,12 +1159,14 @@ export function assign(item, name, value) {
     case 'runs':
       spansOf(item, value);
       return 2;
-    case 'value':
-      item.draft = value == null ? '' : String(value);
-      // A value set moves the caret to its end (the Document keeps the focused one's).
-      item.mark = item.point = -1;
+    case 'value': {
+      const next = value == null ? '' : String(value);
+      // A new value moves the caret to its end (the Document keeps the focused one's); the same one keeps the selection, as the DOM's.
+      if (next !== item.draft) item.mark = item.point = -1;
+      item.draft = next;
       // An Edit that grows with its lines lays out again, and one whose direction its value gives resolves again.
       return item.autosize !== 0 || item.dir === 2 ? 2 : 1;
+    }
     case 'label':
       item.label = str(value);
       return 1;

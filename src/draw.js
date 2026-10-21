@@ -963,7 +963,7 @@ export class Painter {
     this.covers = new Hits(this.space);
     /** Scrolling regions. */
     this.regions = new Hits(this.space);
-    /** Selectable text: each Label's (or text node's) visible box and its content origin. */
+    /** Text the pointer reaches (selectable or not): each Label's (or text node's) visible box and its content origin. */
     this.texts = new Hits(this.space);
     this.state = new State();
     /** The stacking contexts met in the current one, drawn over its children (null: none yet). @type {Stacked[] | null} */
@@ -1253,7 +1253,8 @@ export class Painter {
           else this.lines(item.rows, r, cx, cw, cy, r.textAlign, item.levels);
         }
         frame.leave();
-        if (r.select && r.events) this.texts.add(item, Math.max(x, this.left), Math.max(top, this.top), Math.min(x + w, this.right), Math.min(bottom, this.bottom), cx, cy);
+        // Every text the pointer reaches, selectable or not (the Document asks which are: `selectable`).
+        if (r.events) this.texts.add(item, Math.max(x, this.left), Math.max(top, this.top), Math.min(x + w, this.right), Math.min(bottom, this.bottom), cx, cy);
       } else if (input) this.control(item, x, top, w, bottom, cx, cy, cw, ch);
       else if (kind === IMAGE) {
         if (item.source !== null) frame.image(item.source, cx, cy, cx + cw, cy + ch, r.fit);

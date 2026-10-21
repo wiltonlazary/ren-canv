@@ -13,7 +13,9 @@
 //   compositionend commits it (`commit`: one change);
 // - input (outside a composition) hands the whole value and selection to
 //   `Renderer.input`;
-// - beforeinput turns a line break into Enter on a one-line Edit;
+// - beforeinput turns a line break into Enter on a one-line Edit, and the
+//   platform's undo and redo (its Edit menu) into the Edit's own history's
+//   (the textarea's would undo what the renderer wrote into it);
 // - select and selectionchange mirror the native selection (`select`).
 // Everything reaches the application as the renderer's own change, key and
 // submit events, so worker mode needs nothing of its own. A secret one-line
@@ -88,7 +90,15 @@ export class Entry {
     /** @param {any} e */
     this.before = e => {
       const item = renderer.current;
-      if (item === null || item.kind !== EDIT || item.lines > 1) return;
+      if (item === null || item.kind !== EDIT) return;
+      if (e.inputType === 'historyUndo' || e.inputType === 'historyRedo') {
+        e.preventDefault();
+        if (e.inputType === 'historyUndo') renderer.undo(item);
+        else renderer.redo(item);
+        this.sync();
+        return;
+      }
+      if (item.lines > 1) return;
       if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') {
         e.preventDefault();
         renderer.key('Enter');
@@ -111,7 +121,8 @@ export class Entry {
     this.input = e => {
       if (e.isComposing || renderer.composing) return;
       const [anchor, caret] = ends(this.area);
-      renderer.input(this.area.value, anchor, caret);
+      // A paste, a cut, a drop or a spelling fix is a step of its own in the history.
+      renderer.input(this.area.value, anchor, caret, typeof e.inputType === 'string' && APART.test(e.inputType));
       this.sync();
     };
     this.selection = () => {
@@ -253,6 +264,9 @@ export class Entry {
     this.item = null;
   }
 }
+
+/** The input types of an edit that stands apart in the history, never joined to typing. */
+const APART = /^(insertFrom|deleteBy|insertReplacementText)/;
 
 /** The events that edit the textarea with no keydown the renderer saw first. */
 const FRESH = ['paste', 'cut', 'drop'];

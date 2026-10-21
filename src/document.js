@@ -10,13 +10,14 @@
 // says whether there is anything to draw on. Text is measured through the
 // Fonts the subclass passes in.
 
-import { mount, Theme, behaviorOf } from 'ren-core/host';
+import { mount, Theme, behaviorOf, TEXT as WORDS } from 'ren-core/host';
 import { Item, VIEW, LAYOUT, SCROLL, LABEL, EDIT, ACTION, IMAGE, TEXT, MARKER, HOVER, PRESS, FOCUS, kindOf, assign, touch, link, unlink, shown, editable, finite } from './scene.js';
 import { line, Boxes, measureOf, rowWidth, rowMeasure, textAt, dirOf, rowAt, follows, indent } from './layout.js';
 import { Lines, Seek, Nearest, Under, inside, wraps, xAt } from './text.js';
 import { Painter, decode } from './draw.js';
 import { Entry } from './entry.js';
 import { Mirror, HIDDEN } from './aria.js';
+import { historyOf, TYPED, ERASED, OTHER } from './history.js';
 
 /** @typedef {import('ren-core/host').Host} Host */
 /** @typedef {import('./text.js').Fonts} Fonts */
@@ -85,6 +86,7 @@ export class Change {
  * @property {number=} deltaMode 0 pixels, 1 lines, 2 pages, as the DOM's
  * @property {number=} pointerId
  * @property {number=} timeStamp when the platform sent it (ms): presses that carry it are counted into runs of clicks
+ * @property {string=} pointerType 'mouse', 'touch' or 'pen', as the DOM's ('mouse' when not given)
  */
 
 /** The drag and drop events a primitive listens to. */
@@ -120,6 +122,8 @@ export class Pointer {
     this.deltaY = info.deltaY ?? 0;
     this.deltaMode = info.deltaMode ?? 0;
     this.pointerId = info.pointerId ?? 1;
+    /** What pointed: 'mouse', 'touch' or 'pen'. */
+    this.pointerType = info.pointerType ?? 'mouse';
     /** The item under the pointer (or pressed); the item whose handler runs. */
     this.target = target;
     /** @type {Item} */
@@ -300,6 +304,8 @@ export class Document {
     this.root = new Item(VIEW, '', ++this.count);
     /** The overlay layer portals render into, drawn over the page. */
     this.overlay = new Item(VIEW, '', ++this.count);
+    // Their root node is this Document too (a press on nothing targets the page).
+    this.root.owner = this.overlay.owner = this;
     /** The item with keyboard focus. @type {Item | null} */
     this.current = null;
     /** `current`'s ancestors when it took the focus: a removed item's focusout still reaches them. @type {Item[]} */
@@ -383,6 +389,16 @@ export class Document {
     this.focusAt = 0;
     /** @type {Item[]} */
     this.selected = [];
+    /** The text `selectOnly` opened selection on (selectable, the selection kept in it, while it is open), and its opening. @type {Item | null} */
+    this.opted = null;
+    /** @type {object | null} */
+    this.opening = null;
+    /** Its text actions (`[TEXT]`). @type {import('ren-core/host').TextActions} */
+    this.texts = {
+      at: event => this.textUnder(event),
+      select: node => this.selectOnly(node),
+      selected: () => this.copied(),
+    };
     /** True while the page overflows: its scrollbar's width is taken from the page. */
     this.gutter = false;
     /** What the page was last laid out at (the page's and the overlay's nodes are set as it is). @type {import('./engine.js').Spec} */
@@ -415,6 +431,14 @@ export class Document {
     /** @type {any[] | null} */
     this.queries = null;
     this.tell = () => this.viewed();
+  }
+
+  /**
+   * The text actions (ren-core's TEXT, which `textAt`, `selectText` and `selectedText` read), as a document's.
+   * @returns {import('ren-core/host').TextActions}
+   */
+  get [WORDS]() {
+    return this.texts;
   }
 
   /** The renderer's name, for `Runtime`. */
@@ -515,6 +539,11 @@ export class Document {
   set(node, name, value, previous) {
     const was = name === 'value' ? node.draft : '';
     const change = assign(node, name, value);
+    if (name === 'value') {
+      // A value the view sets that the last edit did not leave (a controlled write, a mask): the history goes, as a field's.
+      const h = historyOf(node);
+      if (h !== null && node.draft !== h.value) h.clear();
+    }
     // A source that failed before: this Image hears `error` too (at mount, or on a change), with no load again.
     if (name === 'source' && node.kind === IMAGE && node.source !== null && this.broken.has(node.source)) this.erred.push(node);
     if (change === 0) return;
@@ -612,7 +641,9 @@ export class Document {
    * @returns {Pointer | null}
    */
   pointer(type, x, y, info, to = null) {
-    if (this.pointing === 0) return null;
+    // A press reaches the root's `presses` (ren-core's $presses) wherever it lands.
+    const presses = type === 'pointerdown' && this.heard('presses');
+    if (this.pointing === 0 && !presses) return null;
     // The target is the topmost box drawn under the pointer, as the DOM's
     // element under it: the event bubbles from it to the handlers above.
     const hits = this.painter.covers;
@@ -621,8 +652,9 @@ export class Document {
     let i = -1;
     if (target === null) {
       i = hits.find(x, y);
-      if (i < 0) return null;
-      target = hits.items[i];
+      if (i < 0 && !presses) return null;
+      // A press on nothing is the page's.
+      target = i < 0 ? this.root : hits.items[i];
     } else for (let k = hits.n - 1; k >= 0; k--) if (hits.items[k] === target) i = k;
     // The target's padding box, where it was last drawn (or where it was pressed).
     let ox = this.grabX;
@@ -644,11 +676,23 @@ export class Document {
       e.handled++;
       this.emit(n, type, e);
     }
+    // Then the root's, as a document's listener hears it last (an item's stopPropagation keeps it from them);
+    // they take nothing from the page (a touch there still pans it), so they count as no handler.
+    if (presses && !e.stopped) {
+      e.currentTarget = this.root;
+      this.emit(this.root, 'presses', e);
+    }
     if (type === 'pointerdown') {
       this.grabX = ox;
       this.grabY = oy;
     }
     return e;
+  }
+
+  /** Whether the page has a handler of `name` (a root-wide one: `keys`, `presses`). @param {string} name */
+  heard(name) {
+    const events = this.root.events;
+    return events !== null && events.some(l => l.name === name);
   }
 
   /** @param {Item} parent @param {Item} child @param {Item | null} before */
@@ -716,6 +760,7 @@ export class Document {
         trap = n;
         break;
       }
+      this.keep(current);
       this.current = null;
       this.damage = true;
       this.lost(current);
@@ -730,12 +775,15 @@ export class Document {
     } else if (current !== null && (current.disabled || inertAt(current))) {
       // Disabled while focused, or in a region made inert: it gives the focus up, as a DOM field does.
       if (this.from >= 0) this.drop();
+      this.keep(current);
       this.current = null;
       this.states(current, FOCUS, false, false);
       this.damage = true;
       this.lost(current);
     }
     if (this.selected.length > 0) this.unselectRemoved();
+    // The text selection was opened on went: so does the opening.
+    if (this.opted !== null && !this.attached(this.opted)) this.opted = this.opening = null;
     if (this.erred.length > 0) {
       // Told after the frame (a handler may change the view), as a failed load is.
       const erred = this.erred.splice(0);
@@ -1272,6 +1320,7 @@ export class Document {
       // While the old one hears blur and focusout nothing has the focus, as
       // in Chrome: a handler that moves it elsewhere wins and `item` hears
       // nothing (moved by a blur handler, the focusout follows, relatedTarget null).
+      this.keep(old);
       this.current = null;
       this.focusPath.length = 0;
       this.states(old, FOCUS, false, false);
@@ -1300,6 +1349,17 @@ export class Document {
       // A focus handler that moved the focus on: its own moves were heard, not this focusin (as in Chrome).
       if (this.current === item) this.bubble(item, 'focusin', { type: 'focusin', relatedTarget: old, target: null, currentTarget: null, stopPropagation: null });
     }
+  }
+
+  /**
+   * An Edit giving up the focus keeps its selection (`ends`), as a DOM
+   * field does: it takes it again with the focus. @param {Item} item
+   */
+  keep(item) {
+    if (item.kind !== EDIT) return;
+    const length = item.draft.length;
+    item.mark = Math.min(this.anchor, length);
+    item.point = Math.min(this.caret, length);
   }
 
   /**
@@ -1332,10 +1392,20 @@ export class Document {
   secondary(x, y, info = PLAIN_POINTER) {
     this.keyed = false;
     this.present();
+    this.outside(x, y);
     this.grabbed = null;
     const e = this.pointer('pointerdown', x, y, info);
     this.present();
     return e !== null && e.handled > 0;
+  }
+
+  /** A press at a point outside the text selection was opened on (`selectOnly`) ends it. @param {number} x @param {number} y */
+  outside(x, y) {
+    const opted = this.opted;
+    if (opted === null) return;
+    const texts = this.painter.texts;
+    for (let i = texts.n - 1; i >= 0; i--) if (texts.items[i] === opted && texts.inside(i, x, y)) return;
+    this.unopen();
   }
 
   /**
@@ -1364,6 +1434,7 @@ export class Document {
   /** `press`'s work. @param {number} x @param {number} y @param {number} count @param {boolean} shift @param {PointerInfo} info */
   pressAt(x, y, count, shift, info) {
     this.present();
+    this.outside(x, y);
     // The pointer handlers first: the item pressed keeps the pointer until release.
     // Nothing holds the pointer until a handler captures it (setPointerCapture), as on the DOM.
     this.grabbed = null;
@@ -1558,20 +1629,27 @@ export class Document {
     return last;
   }
 
+  /** Whether a text selects: its style's `select` (or the behavior's), or `selectOnly` opened it. @param {Item} item */
+  selectable(item) {
+    return item.r.select || item === this.opted;
+  }
+
   /**
    * The selectable text under a point, as its item and the offset nearest
    * the point; with `near`, the nearest text when none is under it (a drag
-   * past the text). Null when there is none.
-   * @param {number} x @param {number} y @param {boolean} near
+   * past the text); with `only`, in that item alone. Null when there is none.
+   * @param {number} x @param {number} y @param {boolean} near @param {boolean} [under] @param {Item | null} [only]
    * @returns {[Item, number] | null}
    */
-  textAt(x, y, near, under = false) {
+  textAt(x, y, near, under = false, only = null) {
     const texts = this.painter.texts;
     const b = texts.box;
     let found = -1;
     let best = Infinity;
     for (let i = texts.n - 1; i >= 0; i--) {
       const k = i * 6;
+      const item = texts.items[i];
+      if (only !== null ? item !== only : !this.selectable(item)) continue;
       if (texts.inside(i, x, y)) {
         found = i;
         break;
@@ -1666,8 +1744,8 @@ export class Document {
     this.focusAt = to;
     // The items from the first end to the last, in document order.
     const order = /** @type {Item[]} */ ([]);
-    texts(this.root, order);
-    texts(this.overlay, order);
+    texts(this.root, order, this.opted);
+    texts(this.overlay, order, this.opted);
     let a = order.indexOf(anchor);
     let f = order.indexOf(focus);
     let fromAt = from;
@@ -1731,15 +1809,22 @@ export class Document {
       this.select(0, item.draft.length);
       return true;
     }
+    // While selection is open on one text, all of that text.
+    const opted = this.opted;
+    if (opted !== null) {
+      this.selectText(opted, 0, opted, opted.text.length);
+      this.present();
+      return true;
+    }
     const order = /** @type {Item[]} */ ([]);
-    if (this.behavior.selectAll) texts(this.root, order);
+    if (this.behavior.selectAll) texts(this.root, order, null);
     else {
       const at = this.anchorItem ?? item;
       const region = at === null ? null : regionOf(at);
       if (region === null) return false;
       if (region.kind === LABEL || region.kind === TEXT) {
         if (region.r.select && region.rows !== null && !region.hidden) order.push(region);
-      } else texts(region, order);
+      } else texts(region, order, null);
     }
     if (order.length === 0) return false;
     const last = /** @type {Item} */ (order.at(-1));
@@ -1760,6 +1845,65 @@ export class Document {
       out += s.text.slice(s.from, s.to);
     }
     return out;
+  }
+
+  /**
+   * The static text under a pointer event's point (its `x`, `y`), as the
+   * root's text actions find it (ren-core's `textAt`): a Label's or a run of
+   * text's whole text, selectable or not; null over no text, over an Edit,
+   * an Action or another press target, or where a box lies over the text.
+   * @param {any} event
+   * @returns {{ node: Item, text: string } | null}
+   */
+  textUnder(event) {
+    const x = Number(event?.x);
+    const y = Number(event?.y);
+    if (x !== x || y !== y) return null;
+    if (this.target(x, y) >= 0) return null;
+    const texts = this.painter.texts;
+    const t = texts.find(x, y);
+    if (t < 0) return null;
+    const item = texts.items[t];
+    const c = this.painter.covers.find(x, y);
+    const top = c < 0 ? null : this.painter.covers.items[c];
+    if (top !== null && !within(top, item) && !within(item, top)) return null;
+    return { node: item, text: item.text };
+  }
+
+  /**
+   * Opens selection on one text (a Label, or the text node a run of text
+   * starts) and selects all of it, as the root's text actions' `select`
+   * (ren-core's `selectText`): it selects while open, whatever its style or
+   * the behavior say, and a drag in it selects within it. A press outside
+   * it, Escape, or the function returned ends it, and the selection in it
+   * with it. A focused Edit gives up the focus.
+   * @param {any} node
+   * @returns {() => void}
+   */
+  selectOnly(node) {
+    if (!(node instanceof Item) || (node.kind !== LABEL && node.kind !== TEXT) || node.owner !== this || !this.attached(node)) return () => {};
+    this.present();
+    if (node.rows === null) return () => {};
+    this.unopen();
+    if (this.current !== null && this.current.kind === EDIT) this.focus(null);
+    const opening = {};
+    this.opted = node;
+    this.opening = opening;
+    this.selectText(node, 0, node, node.text.length);
+    this.present();
+    return () => {
+      if (this.opening === opening) this.unopen();
+    };
+  }
+
+  /** Ends the selection `selectOnly` opened, and the selection in its text. */
+  unopen() {
+    const opted = this.opted;
+    if (opted === null) return;
+    this.opted = this.opening = null;
+    if (this.selected.every(item => item === opted)) this.unselect();
+    this.damage = true;
+    this.present();
   }
 
   /**
@@ -1808,7 +1952,8 @@ export class Document {
           break;
         }
     } else if (this.dragging === 2 && this.anchorItem !== null) {
-      const at = this.textAt(x, y, true);
+      // In the text selection was opened on, the selection stays in it.
+      const at = this.textAt(x, y, true, false, this.anchorItem === this.opted ? this.opted : null);
       if (at !== null) {
         this.selectText(this.anchorItem, this.anchorAt, at[0], at[1]);
         this.present();
@@ -1855,10 +2000,11 @@ export class Document {
    */
   cursorAt(item, x, y) {
     const texts = this.painter.texts;
-    const t = texts.n === 0 ? -1 : texts.find(x, y);
+    let t = texts.n - 1;
+    while (t >= 0 && !(this.selectable(texts.items[t]) && texts.inside(t, x, y))) t--;
     if (t >= 0) {
       const text = texts.items[t];
-      if ((this.behavior.textCursor || regionOf(text) !== null) && (item === null || within(text, item))) return cursorOf(text, 'text');
+      if ((this.behavior.textCursor || regionOf(text) !== null || text === this.opted) && (item === null || within(text, item))) return cursorOf(text, 'text');
     }
     return cursorOf(item);
   }
@@ -2064,6 +2210,8 @@ export class Document {
     this.keyed = true;
     this.present();
     if (this.from >= 0) return false;
+    // Escape ends the selection opened on one text.
+    if (key === 'Escape') this.unopen();
     const item = this.current;
     // As the DOM's keydown: the focused item, then its ancestors, then the
     // root's handlers (`keys`: ren-core's $keys), as a document's listener
@@ -2079,6 +2227,16 @@ export class Document {
     if (!e.stopped && this.root.events !== null) {
       e.currentTarget = this.root;
       this.emit(this.root, 'keys', e);
+    }
+    // In an Edit, Ctrl or Cmd+Z undoes, with Shift (or Ctrl+Y) redoes: its own history, never the native entry's.
+    if (!e.defaultPrevented && item !== null && item.kind === EDIT && this.current === item && (e.ctrlKey || e.metaKey) && !e.altKey) {
+      const k = key.toLowerCase();
+      if (k === 'z' || (k === 'y' && e.ctrlKey && !e.shiftKey)) {
+        if (k === 'y' || e.shiftKey) this.redo(item);
+        else this.undo(item);
+        this.present();
+        return true;
+      }
     }
     // A chord (Ctrl, Cmd or Alt with a character) is the handlers' and the platform's (copy, a shortcut): no editing.
     if (e.defaultPrevented || ((e.ctrlKey || e.metaKey || e.altKey) && single(key))) {
@@ -2114,19 +2272,19 @@ export class Document {
       const end = Math.max(caret, anchor);
       switch (key) {
         case 'Enter':
-          if (item.lines > 1) this.change(item, value.slice(0, start) + '\n' + value.slice(end), start + 1);
+          if (item.lines > 1) this.change(item, value.slice(0, start) + '\n' + value.slice(end), start + 1, TYPED);
           else this.emit(item, 'submit', new Change(value));
           break;
         case 'Backspace':
           if (start < end) this.change(item, value.slice(0, start) + value.slice(end), start);
           else if (caret > 0) {
             const from = caret - erase(value, caret);
-            this.change(item, value.slice(0, from) + value.slice(caret), from);
+            this.change(item, value.slice(0, from) + value.slice(caret), from, ERASED);
           }
           break;
         case 'Delete':
           if (start < end) this.change(item, value.slice(0, start) + value.slice(end), start);
-          else if (caret < value.length) this.change(item, value.slice(0, caret) + value.slice(caret + step(value, caret, 1)), caret);
+          else if (caret < value.length) this.change(item, value.slice(0, caret) + value.slice(caret + step(value, caret, 1)), caret, ERASED);
           break;
         // Back and on in the value's order, the way its direction runs: right to left, the left arrow goes on.
         case 'ArrowLeft':
@@ -2165,7 +2323,7 @@ export class Document {
           break;
         }
         default:
-          if (single(key)) this.change(item, value.slice(0, start) + key + value.slice(end), start + key.length);
+          if (single(key)) this.change(item, value.slice(0, start) + key + value.slice(end), start + key.length, TYPED);
           else handled = false;
       }
     } else if (item.kind === ACTION && (key === 'Enter' || key === ' ')) this.activate(item, this.center(item));
@@ -2251,19 +2409,71 @@ export class Document {
     return u !== null && u.item === item && u.caret === caret && this.caret === caret;
   }
 
-  /** Inserts text at the caret of the focused Edit, replacing the selection. Returns whether there is one. @param {string} text */
+  /** Inserts text at the caret of the focused Edit, replacing the selection (a one-line Edit drops its line breaks). Returns whether there is one. @param {string} text */
   type(text) {
     this.present();
     const item = this.current;
     if (item === null || item.kind !== EDIT) return false;
     if (!editable(item)) return true;
     if (this.from >= 0) this.commit(this.preedit);
+    if (item.lines <= 1) text = text.replace(BREAKS, '');
     const value = item.draft;
     const start = Math.min(value.length, this.caret, this.anchor);
     const end = Math.min(value.length, Math.max(this.caret, this.anchor));
-    this.change(item, value.slice(0, start) + text + value.slice(end), start + text.length);
+    this.change(item, value.slice(0, start) + text + value.slice(end), start + text.length, TYPED);
     this.present();
     return true;
+  }
+
+  /**
+   * Puts text over an Edit's selection as the user's edit (an Edit's
+   * actions' `replace`), focused or not: its `change` handlers hear it (a
+   * controlled Edit shows its bound value again when the view does not take
+   * it), its history keeps it as a step of its own, and the caret follows
+   * the text. A one-line Edit drops the text's line breaks; a read-only or
+   * disabled one takes nothing.
+   * @param {Item} item @param {string} text
+   */
+  replace(item, text) {
+    if (item.kind !== EDIT || !editable(item)) return;
+    this.present();
+    if (item === this.current && this.from >= 0) this.commit(this.preedit);
+    if (item.lines <= 1) text = text.replace(BREAKS, '');
+    const value = item.draft;
+    const [a, c] = item.ends();
+    const start = Math.min(value.length, a, c);
+    const end = Math.min(value.length, Math.max(a, c));
+    this.change(item, value.slice(0, start) + text + value.slice(end), start + text.length);
+    this.present();
+  }
+
+  /**
+   * Steps an Edit's history back (`back`) or on: its value and selection
+   * as they were, its `change` handlers hearing the value. Returns whether
+   * it stepped (a read-only or disabled Edit does not).
+   * @param {Item} item @param {boolean} back
+   */
+  walk(item, back) {
+    const h = historyOf(item);
+    if (item.kind !== EDIT || !editable(item) || h === null) return false;
+    this.present();
+    if (item === this.current && this.from >= 0) this.commit(this.preedit);
+    const step = back ? h.back() : h.on();
+    if (step === null) return false;
+    if (back) this.apply(item, step.before, step.a0, step.c0);
+    else this.apply(item, step.after, step.a1, step.c1);
+    this.present();
+    return true;
+  }
+
+  /** Undoes an Edit's last edit (Ctrl or Cmd+Z, an Edit's actions' `undo`); returns whether it did. @param {Item} item */
+  undo(item) {
+    return this.walk(item, true);
+  }
+
+  /** Does again the edit last undone (Ctrl or Cmd+Shift+Z, Ctrl+Y); returns whether it did. @param {Item} item */
+  redo(item) {
+    return this.walk(item, false);
   }
 
   /**
@@ -2342,10 +2552,18 @@ export class Document {
     const base = this.base;
     const value = base.slice(0, this.from) + text + base.slice(this.cut);
     const caret = this.from + text.length;
+    const from = this.from;
+    const cut = this.cut;
     this.from = -1;
     this.preedit = '';
     this.base = '';
-    if (value !== base) this.change(item, value, caret);
+    if (value !== base) {
+      // The history's step is from the value before the composition, its replaced selection selected.
+      item.draft = base;
+      this.anchor = from;
+      this.caret = cut;
+      this.change(item, value, caret, TYPED);
+    }
     else {
       item.draft = value;
       if (this.mirror !== null) this.mirror.note(item);
@@ -2361,9 +2579,12 @@ export class Document {
    * itself (an input event: virtual keyboards, paste, spell check, the
    * platform's own editing keys). A different value is a change; the same
    * value only moves the selection. Returns whether there is a focused Edit.
-   * @param {string} value @param {number} anchor @param {number} caret
+   * Typing and deleting at a caret join the history's step before (see
+   * history.js); with `apart` (a paste, a cut, a drop) the edit is a step
+   * of its own.
+   * @param {string} value @param {number} anchor @param {number} caret @param {boolean} [apart]
    */
-  input(value, anchor, caret) {
+  input(value, anchor, caret, apart = false) {
     const item = this.current;
     if (item === null || item.kind !== EDIT) return false;
     if (item.lines <= 1 && /[\r\n]/.test(value)) {
@@ -2379,7 +2600,7 @@ export class Document {
       this.damage = true;
       this.select(anchor, caret);
     } else if (value !== item.draft) {
-      this.change(item, value, caret);
+      this.change(item, value, caret, apart ? OTHER : editKind(item.draft, value, this.anchor, this.caret, caret));
       // The entry's own anchor, unless the view rewrote the value or placed the selection itself (a mask):
       // then its collapsed caret stands, as the DOM leaves it.
       if (item.draft === value && this.caret === caret && this.anchor === caret) this.anchor = Math.min(anchor, value.length);
@@ -2388,19 +2609,37 @@ export class Document {
     return true;
   }
 
-  /** The user changed an edit's value: shows it and sends 'change'. @param {Item} item @param {string} value @param {number} caret */
-  change(item, value, caret) {
+  /**
+   * The user changed an edit's value (focused or not): its history keeps
+   * the edit (`kind`: TYPED and ERASED join the step before, history.js),
+   * then it shows the value and sends 'change'.
+   * @param {Item} item @param {string} value @param {number} caret @param {number} [kind]
+   */
+  change(item, value, caret, kind = OTHER) {
+    const [anchor, at] = item.ends();
+    /** @type {import('./history.js').History} */ (historyOf(item, true)).record(item.draft, anchor, at, value, caret, caret, kind, Date.now());
+    this.apply(item, value, caret, caret);
+  }
+
+  /** Shows an Edit's new value and selection, and sends 'change'. @param {Item} item @param {string} value @param {number} anchor @param {number} caret */
+  apply(item, value, anchor, caret) {
     item.draft = value;
     this.goal = null;
     this.upstream = null;
     // An Edit that grows with its lines lays out again, and one whose direction its value gives resolves again.
     if (item.autosize !== 0 || item.dir === 2) touch(item);
     if (this.mirror !== null) this.mirror.note(item);
-    this.caret = this.anchor = caret;
+    if (item === this.current) {
+      this.caret = caret;
+      this.anchor = anchor;
+    } else {
+      item.mark = anchor;
+      item.point = caret;
+    }
     this.damage = true;
     this.emit(item, 'change', new Change(value));
     // The app may write a different value back.
-    this.clamp(item.draft.length);
+    if (item === this.current) this.clamp(item.draft.length);
   }
 
   /** Abandons a composition without sending anything (its Edit left the scene). */
@@ -2593,21 +2832,42 @@ function erase(text, at) {
   return WHOLE.test(text.slice(at - cluster, at)) ? cluster : point(text, at, -1);
 }
 
+/** Line breaks, which a one-line Edit drops from what it takes. */
+const BREAKS = /[\r\n]/g;
+
+/**
+ * What a native entry's edit of `before` (its selection `anchor`, `caret`)
+ * into `after`, its caret at `at`, was for the history: typing at a
+ * collapsed caret, deleting next to one, or anything else.
+ * @param {string} before @param {string} after @param {number} anchor @param {number} caret @param {number} at
+ */
+function editKind(before, after, anchor, caret, at) {
+  if (anchor !== caret) return OTHER;
+  const grown = after.length - before.length;
+  if (grown > 0) return at === caret + grown && after.startsWith(before.slice(0, caret)) && after.endsWith(before.slice(caret)) ? TYPED : OTHER;
+  if (grown < 0 && after.startsWith(before.slice(0, at)) && after.endsWith(before.slice(at - grown)) && (at === caret || at === caret + grown)) return ERASED;
+  return OTHER;
+}
+
 /** True for a key name that is one character (one code point). @param {string} key */
 function single(key) {
   if (key.length === 1) return key.charCodeAt(0) >= 32;
   return key.length === 2 && key.codePointAt(0) !== undefined && /** @type {number} */ (key.codePointAt(0)) > 0xffff;
 }
 
-/** Collects the shown selectable text below `item` (Labels and text nodes), in order. @param {Item} item @param {Item[]} out */
-function texts(item, out) {
+/**
+ * Collects the shown selectable text below `item` (Labels and text nodes),
+ * in order; `opted` (the text `selectOnly` opened) selects too.
+ * @param {Item} item @param {Item[]} out @param {Item | null} opted
+ */
+function texts(item, out, opted) {
   for (let c = item.first; c !== null; c = c.next) {
     if (c.hidden) continue;
-    if ((c.kind === LABEL || c.kind === TEXT) && c.r.select && c.rows !== null) {
+    if ((c.kind === LABEL || c.kind === TEXT) && (c.r.select || c === opted) && c.rows !== null) {
       // A text node in the run of the text before it is selected as part of that one.
       if (c.kind === LABEL || !follows(c)) out.push(c);
     }
-    else if (c.kind !== EDIT && c.kind !== ACTION) texts(c, out);
+    else if (c.kind !== EDIT && c.kind !== ACTION) texts(c, out, opted);
   }
 }
 
@@ -2917,9 +3177,19 @@ export function attach(renderer, canvas, options = {}) {
   const menu = e => {
     if (!renderer.menu(e.offsetX, e.offsetY)) e.preventDefault();
   };
+  /**
+   * A press of another button (a right press, for the app's menu) leaves a
+   * focused Edit's native entry the DOM focus, and its selection, which the
+   * canvas would take as the press's default. @param {any} e
+   */
+  const hold = e => {
+    const entry = renderer.entry;
+    if ((e.button ?? 0) !== 0 && entry !== null && /** @type {any} */ (canvas).ownerDocument?.activeElement === entry.area) e.preventDefault();
+  };
   const undress = input ? dress(canvas, renderer.behavior) : null;
   if (input) {
     canvas.addEventListener('pointerdown', down);
+    canvas.addEventListener('mousedown', hold);
     canvas.addEventListener('pointermove', move);
     renderer.aimed = aimed;
     canvas.addEventListener('pointerup', up);
@@ -3033,6 +3303,7 @@ export function attach(renderer, canvas, options = {}) {
     undress?.();
     if (input) {
       canvas.removeEventListener('pointerdown', down);
+      canvas.removeEventListener('mousedown', hold);
       canvas.removeEventListener('pointermove', move);
       if (renderer.aimed === aimed) renderer.aimed = null;
       canvas.removeEventListener('pointerup', up);

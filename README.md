@@ -394,8 +394,9 @@ canvases: the event names, fields and semantics are the DOM's.
   `onWheel`, `onPointerEnter` and `onPointerLeave`. The event (`Pointer`)
   has `x` and `y` in the surface's logical pixels (also `clientX` and
   `clientY`; these cross to a worker), `offsetX` and `offsetY` from the
-  target's padding box, `button`, `buttons`, `pointerId`, the modifier keys,
-  and a wheel's `deltaX`, `deltaY` and `deltaMode`. Its target is the
+  target's padding box, `button`, `buttons`, `pointerId`, `pointerType`
+  (`'mouse'`, `'touch'` or `'pen'`: the platform's, `'mouse'` without one),
+  the modifier keys, and a wheel's `deltaX`, `deltaY` and `deltaMode`. Its target is the
   topmost box drawn under the pointer (the DOM's element under it; offsets
   are from its padding box), and it bubbles through the target's
   ancestors' handlers (`stopPropagation`, `target`, `currentTarget`); enter and leave
@@ -406,7 +407,7 @@ canvases: the event names, fields and semantics are the DOM's.
   pointerdown keeps its own response (focus, a selection), as a DOM
   mousedown's; the press still happens (a click is not its default); on a
   wheel, the scroll. `attach` passes the browser event's buttons,
-  modifiers and deltas, and scrolls lines and pages as far as a browser does.
+  pointer type, modifiers and deltas, and scrolls lines and pages as far as a browser does.
   A pointerdown carries no click count (Chrome's `detail` is 0, and a
   prevented one sends no mousedown), so the Document counts runs of clicks
   itself from the presses' platform times: the same button within 500 ms
@@ -434,7 +435,10 @@ canvases: the event names, fields and semantics are the DOM's.
   no `pointerup`, as the DOM's.
   A press of another button (a right press) reaches the pointer handlers
   alone (`secondary`), so an app can open its own menu there; it presses,
-  focuses and selects nothing, as a DOM click is the main button's.
+  focuses and selects nothing, as a DOM click is the main button's, and
+  under `attach` it leaves a focused Edit's native entry the DOM focus and
+  its selection (its mousedown's default, which would focus the canvas, is
+  cancelled).
 - **Presses.** A press reaches the topmost box drawn under the pointer,
   and the nearest of it and its ancestors that takes presses (an Edit, an
   Action, an item with `onPress`), as a DOM click reaches its element: a
@@ -466,7 +470,9 @@ canvases: the event names, fields and semantics are the DOM's.
   (Ctrl, Cmd or Alt with a character) reach the handlers and edit nothing;
   `attach` lets the platform have them (copy) unless one prevents it, and
   Ctrl or Cmd+A selects all after them, as the `behavior` allows
-  (§Behavior). A modifier with an arrow,
+  (§Behavior). In an Edit, Ctrl or Cmd+Z undoes and Ctrl or Cmd+Shift+Z
+  or Ctrl+Y redoes, from the Edit's own history (§Text actions), never the
+  native entry's. A modifier with an arrow,
   Backspace, Delete, Home or End (a word or line move, a word deletion)
   is the native entry's under `attach`, which edits and mirrors back;
   without one the plain key's move stands in. ArrowUp and ArrowDown move a
@@ -475,6 +481,15 @@ canvases: the event names, fields and semantics are the DOM's.
   end, as a textarea's (test/rows.test.jsx replays Chrome's recorded moves). The key's `editable` is true
   while an Edit has focus, so a root-wide shortcut can leave keys typed in
   fields alone.
+- **Root-wide presses.** Every pointer press (`press`, `secondary`, a
+  touch's) on the page or the overlay reaches the root's handlers
+  (ren-core's `$presses`, `listen(root, 'presses')`) after the item
+  pressed and its ancestors heard it (their `stopPropagation` keeps it
+  from them), as a document's pointerdown listener hears it last: the
+  pointerdown's event (`button`, `pointerType`, `target`, the point), its
+  target the page on nothing. Its `preventDefault` keeps the press's own
+  action as an item handler's does; it counts as no handler, so a touch
+  on nothing still pans the page.
 - **Root-wide scrolls.** When a Scroll scrolls (the wheel, a ref's
   `scrollTop`), the root's handlers (ren-core's `$scrolls`,
   `listen(root, 'scrolls')`) hear it first, as a document's capture-phase
@@ -501,8 +516,9 @@ canvases: the event names, fields and semantics are the DOM's.
   (the caret where a row wraps on the next row, unless End put it at the
   row's end; a one-line Edit's is row 0 of 1), test/rows.test.jsx checking
   them against the rows Chrome wraps a textarea into. An unfocused Edit
-  keeps a selection set so until it gets focus (at the end of its value
-  otherwise); a Scroll sends `onScroll` (`Scrolled`) as it moves. `getBoundingClientRect()` gives the
+  keeps its selection, as a DOM field does: the one it had when it gave up
+  the focus, or one set so, until it gets the focus again (at the end of its
+  value before either, or after a new value is set); a Scroll sends `onScroll` (`Scrolled`) as it moves. `getBoundingClientRect()` gives the
   item's border box where it was last laid out, in the DOM's shape (`x`,
   `y`, `left`, `top`, `right`, `bottom`, `width`, `height`) and the
   Document's CSS pixels (its canvas's; a ren-three panel's own), the
@@ -695,6 +711,43 @@ value. Presses on Actions and press targets press them instead;
 inherit). `copied()` returns the selected text, `selectAll()` selects as
 Ctrl or Cmd+A does.
 
+## Text actions
+
+What an application's own menus do to text, as ren-core's text actions
+give them (`ren-core/host`'s `EDIT` and `TEXT`):
+
+- **An Edit's**, on its ref (`editOf(ref)`): `value`, `selection` and
+  `setSelection` (kept while it has no focus), `replace(text)` over the
+  selection as the user's edit (focused or not: `change` hears it, a
+  controlled Edit shows its bound value again when the view does not take
+  it, a one-line Edit drops its line breaks, as `type` does), `selectAll`,
+  `undo`, `redo`, `canUndo`, `canRedo`, `focus`, `secret`, `readOnly` and
+  `disabled`. A read-only or disabled Edit takes no replace, undo or redo.
+- **Undo history.** Each Edit keeps its user's edits (src/history.js) as
+  steps of value and selection: typing (keys, an IME's commit, the native
+  entry's insertions) joins the step before while it goes on where that one
+  left the caret, within a second, in the same word (a word and the spaces
+  after it are one step); deleting joins deleting so; a paste, a cut, a
+  drop (the native entry's), a deleted selection or `replace` stands alone. Ctrl or Cmd+Z,
+  Ctrl or Cmd+Shift+Z and Ctrl+Y walk it, and so does the native entry's
+  undo and redo (its `beforeinput`, from the browser's Edit menu), which
+  is cancelled; each step restores the value and selection and sends
+  `change`. An edit after an undo drops the steps undone; a value the view
+  sets that the last edit did not leave (a controlled write, a mask)
+  clears it, as a browser's field forgets its history when code sets its
+  value. At most 100 steps are kept.
+- **The root's**, on the Document (an item's `getRootNode()`): `at(event)`
+  (`textAt`) is the static text under a pointer event's point, `{ node,
+  text }` with a Label's (or a run of text's) whole text, selectable or not;
+  null over no text, an Edit, an Action or another press target, or a box
+  lying over the text. `select(node)` (`selectText`) opens selection on that
+  one text and selects all of it: it selects while open whatever its style
+  and the behavior say (the I-beam over it, Ctrl or Cmd+A all of it), a
+  drag in it selects within it, and a press outside it, Escape or the
+  function it returns ends it and the selection in it; a focused Edit gives
+  up the focus. `selected()` (`selectedText`) is `copied()`: a focused
+  Edit's selection ('' in a secret one), else the text selection.
+
 ## Behavior
 
 An application does not behave as a page: the Document's `behavior`
@@ -751,8 +804,8 @@ npm test           # declarations, tsc --checkJs --strict, the TypeScript consum
 
 `test/document.test.jsx` drives a Document with a fixed-width measure and no
 surface. ren-skia's suite checks the same engine through CanvasKit pixels.
-The other suites each cover one part of the engine: `action`, `backend`,
-`bidi` and `bidi-oracle`, `contents`, `damage`, `edit` and `edit-runs`, `flow`,
+The other suites each cover one part of the engine: `action`, `actions`
+(text actions, undo, `$presses`), `backend`, `bidi` and `bidi-oracle`, `contents`, `damage`, `edit` and `edit-runs`, `flow`,
 `focusable` (tabIndex and inert), `fonts`, `layout`, `paint`, `place`,
 `nonfinite`, `rtl-oracle`, `runs`, `selection`, `shaping` and `shaping-oracle`,
 `taffy-load` and `worker`.
