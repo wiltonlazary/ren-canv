@@ -56,6 +56,9 @@ const typed = (doc, text) => {
   for (const c of text) doc.key(c);
 };
 
+/** What textAt found, its node told as `node` or not (an item's own inspection is too large for an assertion's message). @param {any} hit @param {any} node */
+const told = (hit, node) => (hit === null ? null : { node: hit.node === node, text: hit.text, pressed: hit.pressed });
+
 const UNDO = { ctrlKey: true };
 const REDO = { ctrlKey: true, shiftKey: true };
 
@@ -284,7 +287,7 @@ describe('ren canv text actions', () => {
     doc.close();
   });
 
-  it('finds the static text under a pointer event, and none over an Edit, an Action or nothing', () => {
+  it('finds the text under a pointer event, pressed in an Action or a press target, and none over an Edit or nothing', () => {
     /** @type {any[]} */
     const found = [];
     const { doc, refs } = page(r => (
@@ -292,14 +295,20 @@ describe('ren canv text actions', () => {
         <Label ref={e => (r.label = e)} text="static text" />
         <Edit ref={e => (r.edit = e)} value="field" />
         <Action ref={e => (r.action = e)} text="Go" onPress={() => {}} />
+        <Action onPress={() => {}}><Label ref={e => (r.pay = e)} text="Pay" /></Action>
+        <View onPress={() => {}}><Label ref={e => (r.amount = e)} text="12.50" /></View>
       </View>
     ));
     doc.secondary(...middle(refs.label), { button: 2 });
-    assert.deepEqual(found.pop(), { node: refs.label, text: 'static text' }, 'loose text an app does not select is found too');
+    assert.deepEqual(told(found.pop(), refs.label), { node: true, text: 'static text', pressed: false }, 'loose text an app does not select is found too');
     doc.secondary(...middle(refs.edit), { button: 2 });
     assert.equal(found.pop(), null);
     doc.secondary(...middle(refs.action), { button: 2 });
-    assert.equal(found.pop(), null);
+    assert.equal(found.pop(), null, 'an Action\'s own text is no text item');
+    doc.secondary(...middle(refs.pay), { button: 2 });
+    assert.deepEqual(told(found.pop(), refs.pay), { node: true, text: 'Pay', pressed: true }, "an Action's label");
+    doc.secondary(...middle(refs.amount), { button: 2 });
+    assert.deepEqual(told(found.pop(), refs.amount), { node: true, text: '12.50', pressed: true }, "a pressable View's label");
     doc.secondary(200, 280, { button: 2 });
     assert.equal(found.pop(), null);
     // Anonymous text in a View is its run's.
@@ -357,6 +366,80 @@ describe('ren canv text actions', () => {
     /** @type {() => void} */ (selectText(refs.other))();
     assert.equal(selectedText(refs.label), '');
     assert.equal(doc.opted, null);
+    doc.close();
+  });
+
+  it('selects in an opened text an Action holds, pressing, focusing and clicking nothing until it ends', () => {
+    let presses = 0;
+    /** @type {any} */
+    let hit = null;
+    const { doc, refs } = page(r => (
+      <View onPointerDown={(/** @type {any} */ e) => (hit = textAt(e))}>
+        <Action ref={e => (r.action = e)} onPress={() => presses++}>
+          <Label ref={e => (r.label = e)} text="hello world" />
+        </Action>
+        <Label ref={e => (r.other = e)} text="other line" />
+      </View>
+    ));
+    const box = refs.label.getBoundingClientRect();
+    const x = box.x;
+    const y = box.y + box.height / 2;
+    doc.secondary(x + 12, y, { button: 2 });
+    assert.equal(hit?.pressed, true);
+    let release = /** @type {() => void} */ (selectText(hit.node));
+    assert.equal(selectedText(refs.label), 'hello world');
+    // A press and a drag inside select a part, and press nothing.
+    doc.press(x + 12, y);
+    assert.equal(doc.pressed === null, true, 'the Action is not pressed');
+    assert.equal(refs.action.state & 2, 0, 'nor in its press state');
+    assert.equal(doc.current === null, true, 'nor focused');
+    doc.move(x + 27, y);
+    doc.release(x + 27, y);
+    assert.equal(selectedText(refs.label), 'llo');
+    assert.equal(presses, 0, 'nor clicked');
+    // A right press inside keeps it.
+    doc.secondary(x + 12, y, { button: 2 });
+    assert.equal(selectedText(refs.label), 'llo');
+    // Escape ends it, and the Action presses again.
+    doc.key('Escape');
+    assert.equal(selectedText(refs.label), '');
+    doc.press(x + 12, y);
+    doc.release(x + 12, y);
+    assert.deepEqual([presses, doc.current === refs.action], [1, true]);
+    // So after its release, and after a press outside.
+    release = /** @type {() => void} */ (selectText(refs.label));
+    release();
+    doc.press(x + 12, y);
+    doc.release(x + 12, y);
+    assert.equal(presses, 2);
+    selectText(refs.label);
+    doc.press(...middle(refs.other));
+    doc.release(...middle(refs.other));
+    assert.equal(doc.opted === null, true);
+    doc.press(x + 12, y);
+    doc.release(x + 12, y);
+    assert.equal(presses, 3);
+    doc.close();
+  });
+
+  it('selects in an opened text a pressable View holds, without its press', () => {
+    let presses = 0;
+    const { doc, refs } = page(r => (
+      <View ref={e => (r.row = e)} onPress={() => presses++} tabIndex={0}>
+        <Label ref={e => (r.amount = e)} text="1234.50" />
+      </View>
+    ));
+    const box = refs.amount.getBoundingClientRect();
+    const y = box.y + box.height / 2;
+    selectText(refs.amount);
+    doc.press(box.x + 2, y);
+    doc.move(box.x + 22, y);
+    doc.release(box.x + 22, y);
+    assert.equal(selectedText(refs.amount), '1234');
+    assert.deepEqual([presses, doc.current === null, doc.pressed === null], [0, true, true]);
+    doc.key('Escape');
+    doc.press(box.x + 2, y);
+    assert.deepEqual([presses, doc.current === refs.row], [1, true]);
     doc.close();
   });
 

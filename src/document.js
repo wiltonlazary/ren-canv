@@ -1369,8 +1369,10 @@ export class Document {
    * Shift extends the selection), and a drag from there selects. On an
    * Action or a press target: presses it. On selectable text: starts a
    * selection there, which a drag extends (a double press selects a word, a
-   * triple the whole Label; Shift extends the selection). Returns whether it
-   * hit anything, or a pointer handler took it.
+   * triple the whole Label; Shift extends the selection). In the text
+   * selection was opened on (`selectOnly`): selects there the same way,
+   * and presses, focuses and clicks nothing that holds it. Returns whether
+   * it hit anything, or a pointer handler took it.
    * @param {number} x @param {number} y @param {number} [count] @param {boolean} [shift] @param {PointerInfo} [info] the pointer's buttons and modifiers, for pointer handlers
    */
   press(x, y, count = 1, shift = false, info = PLAIN_POINTER) {
@@ -1446,6 +1448,16 @@ export class Document {
     // The region a press there focuses (a View with a tabIndex around the point), as a DOM click focuses its nearest focusable ancestor.
     const region = this.holder(x, y);
     const e = this.pointer('pointerdown', x, y, info);
+    // In the text selection was opened on (`outside` ended it elsewhere):
+    // the press selects in it, and the Action or press target holding it is
+    // neither pressed, focused nor clicked.
+    if (this.opted !== null) {
+      this.dragging = 0;
+      this.pressing(null);
+      if (e === null || !e.defaultPrevented) this.selectAt(x, y, count, shift, this.opted);
+      this.present();
+      return true;
+    }
     const hits = this.painter.hits;
     const item = pressed !== null && this.attached(pressed) ? pressed : null;
     // A run of text under it with its own press (an anchor in a sentence) hears it first, as a span's click before its Label's.
@@ -1470,22 +1482,12 @@ export class Document {
     if (item === null) {
       this.pressing(null);
       this.focus(region !== null && this.attached(region) ? region : null);
-      const at = this.textAt(x, y, false);
-      if (at === null) {
+      if (!this.selectAt(x, y, count, shift, null)) {
         this.unselect();
         this.present();
         // A pointer handler that ran took it: the host keeps the pointer here.
         return e !== null && e.handled > 0;
       }
-      const [item, offset] = at;
-      if (count >= 3) this.selectText(item, 0, item, item.text.length);
-      else if (count === 2) {
-        // The word of the character under the press (its right half too), as a browser takes it.
-        const [from, to] = word(item.text, /** @type {[Item, number]} */ (this.textAt(x, y, false, true))[1]);
-        this.selectText(item, from, item, to);
-      } else if (shift && this.anchorItem !== null) this.selectText(this.anchorItem, this.anchorAt, item, offset);
-      else this.selectText(item, offset, item, offset);
-      this.dragging = 2;
       this.present();
       return true;
     }
@@ -1515,6 +1517,28 @@ export class Document {
       if (!stopped) this.activate(item, new Press(x, y));
     }
     this.present();
+    return true;
+  }
+
+  /**
+   * A press's selection in the selectable text under a point (with `only`,
+   * in that text alone): a caret there, which a drag extends; a double
+   * press the word there, a triple the whole text; Shift extends the
+   * selection. Returns whether there was text.
+   * @param {number} x @param {number} y @param {number} count @param {boolean} shift @param {Item | null} only
+   */
+  selectAt(x, y, count, shift, only) {
+    const at = this.textAt(x, y, false, false, only);
+    if (at === null) return false;
+    const [item, offset] = at;
+    if (count >= 3) this.selectText(item, 0, item, item.text.length);
+    else if (count === 2) {
+      // The word of the character under the press (its right half too), as a browser takes it.
+      const [from, to] = word(item.text, /** @type {[Item, number]} */ (this.textAt(x, y, false, true, only))[1]);
+      this.selectText(item, from, item, to);
+    } else if (shift && this.anchorItem !== null) this.selectText(this.anchorItem, this.anchorAt, item, offset);
+    else this.selectText(item, offset, item, offset);
+    this.dragging = 2;
     return true;
   }
 
@@ -1850,16 +1874,16 @@ export class Document {
   /**
    * The static text under a pointer event's point (its `x`, `y`), as the
    * root's text actions find it (ren-core's `textAt`): a Label's or a run of
-   * text's whole text, selectable or not; null over no text, over an Edit,
-   * an Action or another press target, or where a box lies over the text.
+   * text's whole text, selectable or not, `pressed` when an Action or
+   * another press target holds it; null over no text, over an Edit or text
+   * an Edit holds, or where a box lies over the text.
    * @param {any} event
-   * @returns {{ node: Item, text: string } | null}
+   * @returns {{ node: Item, text: string, pressed: boolean } | null}
    */
   textUnder(event) {
     const x = Number(event?.x);
     const y = Number(event?.y);
     if (x !== x || y !== y) return null;
-    if (this.target(x, y) >= 0) return null;
     const texts = this.painter.texts;
     const t = texts.find(x, y);
     if (t < 0) return null;
@@ -1867,7 +1891,10 @@ export class Document {
     const c = this.painter.covers.find(x, y);
     const top = c < 0 ? null : this.painter.covers.items[c];
     if (top !== null && !within(top, item) && !within(item, top)) return null;
-    return { node: item, text: item.text };
+    for (let n = /** @type {Item | null} */ (item); n !== null; n = n.parent) if (n.kind === EDIT) return null;
+    const h = this.target(x, y);
+    if (h >= 0 && this.painter.hits.items[h].kind === EDIT) return null;
+    return { node: item, text: item.text, pressed: h >= 0 };
   }
 
   /**
@@ -2857,7 +2884,8 @@ function single(key) {
 
 /**
  * Collects the shown selectable text below `item` (Labels and text nodes),
- * in order; `opted` (the text `selectOnly` opened) selects too.
+ * in order; `opted` (the text `selectOnly` opened) selects too, the
+ * one text of an Action that does (an Action's text is not selectable).
  * @param {Item} item @param {Item[]} out @param {Item | null} opted
  */
 function texts(item, out, opted) {
@@ -2868,6 +2896,7 @@ function texts(item, out, opted) {
       if (c.kind === LABEL || !follows(c)) out.push(c);
     }
     else if (c.kind !== EDIT && c.kind !== ACTION) texts(c, out, opted);
+    else if (c.kind === ACTION && opted !== null && opted.rows !== null && within(opted, c)) out.push(opted);
   }
 }
 
