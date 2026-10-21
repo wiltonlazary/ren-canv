@@ -375,7 +375,7 @@ describe('ren canv text actions', () => {
     let hit = null;
     const { doc, refs } = page(r => (
       <View onPointerDown={(/** @type {any} */ e) => (hit = textAt(e))}>
-        <Action ref={e => (r.action = e)} onPress={() => presses++}>
+        <Action ref={e => (r.action = e)} onPress={() => presses++} style={{ align: 'start' }}>
           <Label ref={e => (r.label = e)} text="hello world" />
         </Action>
         <Label ref={e => (r.other = e)} text="other line" />

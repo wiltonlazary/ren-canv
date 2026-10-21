@@ -738,14 +738,18 @@ give them (`ren-core/host`'s `EDIT` and `TEXT`):
   value. At most 100 steps are kept.
 - **The root's**, on the Document (an item's `getRootNode()`): `at(event)`
   (`textAt`) is the static text under a pointer event's point, `{ node,
-  text }` with a Label's (or a run of text's) whole text, selectable or not;
-  null over no text, an Edit, an Action or another press target, or a box
-  lying over the text. `select(node)` (`selectText`) opens selection on that
-  one text and selects all of it: it selects while open whatever its style
-  and the behavior say (the I-beam over it, Ctrl or Cmd+A all of it), a
-  drag in it selects within it, and a press outside it, Escape or the
-  function it returns ends it and the selection in it; a focused Edit gives
-  up the focus. `selected()` (`selectedText`) is `copied()`: a focused
+  text, pressed }` with a Label's (or a run of text's) whole text,
+  selectable or not, `pressed` when an Action or another press target holds
+  it (a button's label, a pressable row's amount: the application's menu
+  decides whether to offer it); null over no text, an Edit or text an Edit
+  holds, or a box lying over the text. `select(node)` (`selectText`) opens
+  selection on that one text and selects all of it: it selects while open
+  whatever its style and the behavior say (the I-beam over it, Ctrl or
+  Cmd+A all of it, an Action's text too), a press in it places a caret
+  there (a double press a word, a triple all of it) and a drag selects
+  within it, pressing, focusing and clicking nothing that holds it; a press
+  outside it, Escape or the function it returns ends it and the selection
+  in it, and what holds it presses again; a focused Edit gives up the focus. `selected()` (`selectedText`) is `copied()`: a focused
   Edit's selection ('' in a secret one), else the text selection.
 
 ## Behavior
