@@ -2,7 +2,7 @@
 // test/editing.test.jsx checks an Edit against: for each case, the carets
 // ArrowRight and ArrowLeft visit, and what Backspace and Delete take at each.
 // Run it under the machine-wide Chrome lock and commit what it writes:
-//   flock "$HOME/.cache/chrome-bench.lock" node scripts/editing-oracle.mjs test/fixtures/editing.json
+//   flock -w 1800 "$HOME/.cache/chrome-bench.lock" node scripts/editing-oracle.mjs test/fixtures/editing.json
 import { writeFileSync } from 'node:fs';
 import { withChrome } from './chrome.mjs';
 const cases = [

@@ -8,7 +8,7 @@
 // checkout beside this one (the workspace's layout), or from REN_DOM (its
 // src/index.js). Run it under the machine-wide Chrome lock and commit what
 // it writes:
-//   flock "$HOME/.cache/chrome-bench.lock" node scripts/layout-oracle.mjs test/fixtures/layout.json
+//   flock -w 1800 "$HOME/.cache/chrome-bench.lock" node scripts/layout-oracle.mjs test/fixtures/layout.json
 import { copyFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';

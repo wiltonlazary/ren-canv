@@ -9,7 +9,7 @@
 // Range's left edge). Arabic, Hebrew with points, Devanagari, Latin with
 // marks, Latin alone and marks a typeface lacks (font fallback by cluster).
 // Run it under the machine-wide Chrome lock and commit what it writes:
-//   flock "$HOME/.cache/chrome-bench.lock" node scripts/shaping-oracle.mjs test/fixtures/shaping.json
+//   flock -w 1800 "$HOME/.cache/chrome-bench.lock" node scripts/shaping-oracle.mjs test/fixtures/shaping.json
 import { copyFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';

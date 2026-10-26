@@ -9,7 +9,7 @@
 // is heard after (`later`: Chrome blurs a disabled button at its next
 // frame) and the focused one then (`after`).
 // Run it under the machine-wide Chrome lock and commit what it writes:
-//   flock "$HOME/.cache/chrome-bench.lock" node scripts/focus-oracle.mjs test/fixtures/focus.json
+//   flock -w 1800 "$HOME/.cache/chrome-bench.lock" node scripts/focus-oracle.mjs test/fixtures/focus.json
 import { writeFileSync } from 'node:fs';
 import { withChrome } from './chrome.mjs';
 

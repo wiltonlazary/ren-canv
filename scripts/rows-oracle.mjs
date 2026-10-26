@@ -7,7 +7,7 @@
 // the field's scrollTop after each key. Ctrl+ArrowLeft's word moves are
 // also recorded from every caret, for a test that plays the platform.
 // Run it under the machine-wide Chrome lock and commit what it writes:
-//   flock "$HOME/.cache/chrome-bench.lock" node scripts/rows-oracle.mjs test/fixtures/rows.json
+//   flock -w 1800 "$HOME/.cache/chrome-bench.lock" node scripts/rows-oracle.mjs test/fixtures/rows.json
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { withChrome } from './chrome.mjs';

@@ -17,7 +17,7 @@
 // ren-dom is bundled from its checkout beside this one (the workspace's
 // layout), or from REN_DOM (its src/index.js). Run it under the
 // machine-wide Chrome lock and commit what it writes:
-//   flock "$HOME/.cache/chrome-bench.lock" node scripts/rtl-oracle.mjs test/fixtures/rtl.json
+//   flock -w 1800 "$HOME/.cache/chrome-bench.lock" node scripts/rtl-oracle.mjs test/fixtures/rtl.json
 import { copyFileSync, writeFileSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
