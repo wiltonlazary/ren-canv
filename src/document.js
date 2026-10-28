@@ -252,12 +252,13 @@ export class Scrolled {
  * `stopPropagation` ends nothing after it; each is its own event.
  */
 class Focus {
-  /** @param {string} type @param {Item} target @param {Item | null} relatedTarget */
-  constructor(type, target, relatedTarget) {
+  /** @param {string} type @param {Item} target @param {Item | null} relatedTarget @param {boolean} [focusVisible] a focus that shows its ring */
+  constructor(type, target, relatedTarget, focusVisible = false) {
     this.type = type;
     this.target = target;
     this.currentTarget = target;
     this.relatedTarget = relatedTarget;
+    this.focusVisible = focusVisible;
     this.stopped = false;
   }
   stopPropagation() {
@@ -1345,9 +1346,11 @@ export class Document {
     }
     if (item !== null) this.states(item, FOCUS, true, false);
     if (item !== null) {
-      this.emit(item, 'focus', new Focus('focus', item, old));
+      // It shows its ring as drawn: an Edit's always, any other's when the keyboard gave it (Chrome's :focus-visible).
+      const shown = item.kind === EDIT || ring;
+      this.emit(item, 'focus', new Focus('focus', item, old, shown));
       // A focus handler that moved the focus on: its own moves were heard, not this focusin (as in Chrome).
-      if (this.current === item) this.bubble(item, 'focusin', { type: 'focusin', relatedTarget: old, target: null, currentTarget: null, stopPropagation: null });
+      if (this.current === item) this.bubble(item, 'focusin', { type: 'focusin', relatedTarget: old, focusVisible: shown, target: null, currentTarget: null, stopPropagation: null });
     }
   }
 

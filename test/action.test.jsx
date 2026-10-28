@@ -251,6 +251,40 @@ describe('ren canv an Action holding content', () => {
     doc.close();
   });
 
+  it('gives a focus and a focusin focusVisible as the ring shows: a key or code after one, not a press or code after it; an Edit always', () => {
+    const doc = make();
+    /** @type {string[]} */
+    const heard = [];
+    const log = (/** @type {string} */ who) => (/** @type {any} */ e) => heard.push(`${who} ${e.type} ${e.focusVisible}`);
+    /** @type {any} */
+    const refs = {};
+    render(() => (
+      <View style={{ align: 'start' }} onFocusIn={log('wrap')}>
+        <Action ref={(/** @type {any} */ n) => (refs.a = n)} text="a" onFocus={log('a')} />
+        <Action ref={(/** @type {any} */ n) => (refs.b = n)} text="b" />
+        <Edit ref={(/** @type {any} */ n) => (refs.field = n)} value="" />
+      </View>
+    ), doc);
+    doc.present();
+    doc.key('Tab');
+    assert.equal(doc.focused, refs.a);
+    assert.deepEqual(heard.splice(0), ['a focus true', 'wrap focusin true'], 'Tab');
+    refs.b.focus();
+    assert.deepEqual(heard.splice(0), ['wrap focusin true'], 'code after a key');
+    const [x, y] = box(refs.a);
+    doc.press(x + 2, y + 2);
+    doc.release(x + 2, y + 2);
+    assert.equal(doc.focused, refs.a);
+    assert.deepEqual(heard.splice(0), ['a focus false', 'wrap focusin false'], 'a press');
+    refs.b.focus();
+    assert.deepEqual(heard.splice(0), ['wrap focusin false'], 'code after a press');
+    const [fx, fy] = box(refs.field);
+    doc.press(fx + 2, fy + 2);
+    doc.release(fx + 2, fy + 2);
+    assert.deepEqual(heard.splice(0), ['wrap focusin true'], 'an Edit pressed');
+    doc.close();
+  });
+
   it("moves the focus as Chrome does when a focus handler acts (fixtures/focus.json)", () => {
     const oracle = JSON.parse(readFileSync(new URL('./fixtures/focus.json', import.meta.url), 'utf8'));
     /** The cases heard otherwise than in Chrome, by name: why. */

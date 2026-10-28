@@ -557,7 +557,11 @@ canvases: the event names, fields and semantics are the DOM's.
   its own event (`target`, `relatedTarget`; focus and blur do not bubble);
   focusout and focusin bubble through the ancestors (`stopPropagation`
   ends them), with `relatedTarget` the item on the other side (null:
-  none), so a wrapper hears focus move into or out of it. A focused item
+  none), so a wrapper hears focus move into or out of it. The focus and
+  the focusin carry ren-core's `focusVisible`: true when the item shows its
+  ring as drawn (an Edit always, any other item when the keyboard gave the
+  focus or code moved it while the last input was a key), as the DOM's
+  `:focus-visible`. A focused item
   hidden or disabled gives the focus up the same way: `onBlur`, then
   `onFocusOut` (`relatedTarget` null) through the ancestors it had. A
   focused item removed hears nothing (ren-core drops its handlers before
