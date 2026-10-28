@@ -227,6 +227,31 @@ describe('ren canv placement and stacking', () => {
     doc.close();
   });
 
+  it('closes a portal with what its regions showed after it opened', () => {
+    const doc = new Probe({ width: 480, height: 360 });
+    const R = $root('canv');
+    const open = $signal(R, true);
+    const late = $signal(R, false);
+    render(() => (
+      <View>
+        <Show when={open}><Portal><Show when={late}><Label text="notice" /></Show></Portal></Show>
+        <Portal><Label text="other" /></Portal>
+      </View>
+    ), doc, { root: R });
+    /** The texts the portal layer holds. */
+    const texts = () => {
+      /** @type {string[]} */
+      const out = [];
+      for (let c = doc.overlay.first; c !== null; c = c.next) if (c.text) out.push(c.text);
+      return out;
+    };
+    $write(late, true);
+    assert.deepEqual(texts(), ['notice', 'other']);
+    $write(open, false);
+    assert.deepEqual(texts(), ['other'], 'the notice shown later went with its portal');
+    doc.close();
+  });
+
   it('gives a press to the topmost box: a plain View over an Action keeps it', () => {
     const doc = new Probe();
     let presses = 0;
