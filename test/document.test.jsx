@@ -306,8 +306,8 @@ describe('ren canv document', () => {
     ), doc);
     doc.present();
     // The first finger on a, the second on b: a's capture stays its own.
-    doc.press(10, 10, 1, false, { pointerId: 4 });
-    doc.press(110, 10, 1, false, { pointerId: 5 });
+    doc.press(10, 10, 1, false, { pointerId: 4, pointerType: 'touch' });
+    doc.press(110, 10, 1, false, { pointerId: 5, pointerType: 'touch' });
     assert.deepEqual([pads.a.hasPointerCapture(4), pads.b.hasPointerCapture(5), pads.a.hasPointerCapture(5), pads.b.hasPointerCapture(4)], [true, true, false, false], 'a second press does not drop the first capture');
     // Each dragged off its item, over the other's: its moves stay with the item that captured it.
     doc.move(120, 150, { pointerId: 4 });
@@ -324,13 +324,13 @@ describe('ren canv document', () => {
     assert.deepEqual(seen, ['a pointerup 4 primary', 'b pointermove 5', 'b pointercancel 5'], 'the second finger is not the primary one, even once the first is lifted');
     seen.length = 0;
     // All lifted, the next finger is the first again; a host that says which is primary is believed.
-    doc.press(110, 10, 1, false, { pointerId: 7 });
+    doc.press(110, 10, 1, false, { pointerId: 7, pointerType: 'touch' });
     pads.b.releasePointerCapture(8);
     assert.equal(pads.b.hasPointerCapture(7), true, 'another pointer\'s release leaves it');
     pads.b.releasePointerCapture(7);
     assert.equal(pads.b.hasPointerCapture(7), false);
     doc.release(110, 10, { pointerId: 7 });
-    doc.press(10, 10, 1, false, { pointerId: 9, isPrimary: false });
+    doc.press(10, 10, 1, false, { pointerId: 9, pointerType: 'touch', isPrimary: false });
     doc.release(10, 10, { pointerId: 9, isPrimary: false });
     assert.deepEqual(seen, ['b pointerdown 7 primary', 'b pointerup 7 primary', 'a pointerdown 9', 'a pointerup 9']);
     // A capture with no id is the last event's pointer's, as one pointer's always was.
@@ -340,6 +340,40 @@ describe('ren canv document', () => {
     assert.equal(doc.grabbed, pads.a);
     doc.release(10, 10);
     assert.equal(doc.grabbed, null);
+    doc.close();
+  });
+
+  it('finds the primary pointer again after a release it never heard: a mouse, a pointer pressed again, one its host says is', () => {
+    const doc = new Document(mono, { width: 300, height: 200 });
+    /** @type {string[]} */
+    const seen = [];
+    /** @type {any} */
+    let pad = null;
+    const note = (/** @type {any} */ e) => void seen.push(`${e.type} ${e.pointerId}${e.isPrimary ? ' primary' : ''}`);
+    render(() => (
+      <View ref={(/** @type {any} */ n) => (pad = n)} style={{ width: 300, height: 200 }} onPointerDown={(/** @type {any} */ e) => (note(e), e.currentTarget.setPointerCapture(e.pointerId))} onPointerMove={note} onPointerUp={note} />
+    ), doc);
+    doc.present();
+    const touch = (/** @type {number} */ id) => ({ pointerId: id, pointerType: 'touch' });
+    // A finger whose release never reaches the Document.
+    doc.press(10, 10, 1, false, touch(4));
+    // A mouse is one pointer, always primary, whatever fingers are (or seem) down.
+    doc.press(20, 20);
+    doc.release(20, 20);
+    // Another finger is a second one for all the Document can tell; pressed again with no release between, it
+    // shows that releases are lost: it is the only one down, and the lost one holds nothing.
+    doc.press(30, 30, 1, false, touch(5));
+    assert.equal(pad.hasPointerCapture(4), true);
+    doc.press(30, 30, 1, false, touch(5));
+    assert.equal(pad.hasPointerCapture(4), false, 'the pointer lost holds no capture');
+    doc.move(40, 40, touch(5));
+    // One its host says is primary is believed, and is the first again for the events that do not say.
+    doc.press(50, 50, 1, false, { ...touch(8), isPrimary: true });
+    assert.equal(pad.hasPointerCapture(5), false);
+    doc.move(60, 60, touch(8));
+    doc.release(60, 60, touch(8));
+    doc.press(70, 70, 1, false, touch(9));
+    assert.deepEqual(seen, ['pointerdown 4 primary', 'pointerdown 1 primary', 'pointerup 1 primary', 'pointerdown 5', 'pointerdown 5 primary', 'pointermove 5 primary', 'pointerdown 8 primary', 'pointermove 8 primary', 'pointerup 8 primary', 'pointerdown 9 primary']);
     doc.close();
   });
 

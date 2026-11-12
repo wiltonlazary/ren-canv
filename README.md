@@ -395,8 +395,12 @@ canvases: the event names, fields and semantics are the DOM's.
   has `x` and `y` in the surface's logical pixels (also `clientX` and
   `clientY`; these cross to a worker), `offsetX` and `offsetY` from the
   target's padding box, `button`, `buttons`, `pointerId`, `isPrimary` (the
-  platform's; without one, the only pointer down or the one pressed while
-  no other was, so a second finger is not), `pointerType`
+  platform's; without one, a mouse is, and of touches and pens the only one
+  down or the one pressed while no other was, so a second finger is not; a
+  host that gives ids without it sends every pointer's release or cancel,
+  as the DOM always does: a finger whose release is lost counts as down
+  until a pointer is pressed again without its own release, or a press says
+  it is primary), `pointerType`
   (`'mouse'`, `'touch'` or `'pen'`: the platform's, `'mouse'` without one),
   the modifier keys, and a wheel's `deltaX`, `deltaY` and `deltaMode`. Its target is the
   topmost box drawn under the pointer (the DOM's element under it; offsets

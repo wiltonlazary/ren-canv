@@ -85,7 +85,7 @@ export class Change {
  * @property {number=} deltaY
  * @property {number=} deltaMode 0 pixels, 1 lines, 2 pages, as the DOM's
  * @property {number=} pointerId 1 when not given
- * @property {boolean=} isPrimary whether it is the primary pointer of its type, as the DOM's; when not given, the only pointer down, or the one pressed while no other was
+ * @property {boolean=} isPrimary whether it is the primary pointer of its type, as the DOM's; when not given, a mouse is, and of touches and pens the only one down, or the one pressed while no other was
  * @property {number=} timeStamp when the platform sent it (ms): presses that carry it are counted into runs of clicks
  * @property {string=} pointerType 'mouse', 'touch' or 'pen', as the DOM's ('mouse' when not given)
  */
@@ -378,7 +378,7 @@ export class Document {
     this.dragPath = [];
     /** The item that captured each pointer (setPointerCapture), by pointer id: its moves and release go to it until then. @type {Map<number, Item>} */
     this.captures = new Map();
-    /** The pointers pressed and neither released nor taken back yet, by id. @type {Set<number>} */
+    /** The touches and pens pressed and neither released nor taken back yet, by id (a mouse is not counted). @type {Set<number>} */
     this.downs = new Set();
     /** The primary pointer's id while pointers are down: the one pressed while no other was. */
     this.primary = 1;
@@ -701,13 +701,16 @@ export class Document {
   }
 
   /**
-   * Whether a pointer is the primary one when its host does not say: the
-   * only one down, or the one pressed while no other was, as the DOM's
-   * first finger (a second one is not, even once the first is lifted).
+   * Whether a pointer is the primary one when its host does not say: a
+   * mouse always; another, the only one down, or the one pressed while no
+   * other was, as the DOM's first finger (a second one is not, even once
+   * the first is lifted).
    * @param {PointerInfo} info
    */
   primaryOf(info) {
-    return this.downs.size === 0 || (info.pointerId ?? 1) === this.primary;
+    const id = info.pointerId ?? 1;
+    if (this.downs.has(id)) return id === this.primary;
+    return this.downs.size === 0 || (info.pointerType ?? 'mouse') === 'mouse';
   }
 
   /** The item holding a pointer (the first captured of them), or null. @returns {Item | null} */
@@ -1467,8 +1470,17 @@ export class Document {
     // what another pointer captured stays its own.
     const id = info.pointerId ?? 1;
     this.captures.delete(id);
-    if (this.downs.size === 0) this.primary = id;
-    this.downs.add(id);
+    // A mouse is one pointer, always primary, as the DOM's; the others are counted while down.
+    if ((info.pointerType ?? 'mouse') !== 'mouse') {
+      // One its host says is primary, or one pressed again with no release heard: the releases of those down
+      // before it were lost, so they are down no more and hold nothing.
+      if (info.isPrimary === true || this.downs.has(id)) {
+        for (const lost of this.downs) if (lost !== id) this.captures.delete(lost);
+        this.downs.clear();
+      }
+      if (this.downs.size === 0) this.primary = id;
+      this.downs.add(id);
+    }
     // The element pressed is the one under the point before the handlers
     // ran, as the DOM's: a handler that lays something over the point (a
     // dropdown's backdrop) keeps the press's focus from nothing.
