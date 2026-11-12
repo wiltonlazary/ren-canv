@@ -394,7 +394,9 @@ canvases: the event names, fields and semantics are the DOM's.
   `onWheel`, `onPointerEnter` and `onPointerLeave`. The event (`Pointer`)
   has `x` and `y` in the surface's logical pixels (also `clientX` and
   `clientY`; these cross to a worker), `offsetX` and `offsetY` from the
-  target's padding box, `button`, `buttons`, `pointerId`, `pointerType`
+  target's padding box, `button`, `buttons`, `pointerId`, `isPrimary` (the
+  platform's; without one, the only pointer down or the one pressed while
+  no other was, so a second finger is not), `pointerType`
   (`'mouse'`, `'touch'` or `'pen'`: the platform's, `'mouse'` without one),
   the modifier keys, and a wheel's `deltaX`, `deltaY` and `deltaMode`. Its target is the
   topmost box drawn under the pointer (the DOM's element under it; offsets
@@ -402,11 +404,16 @@ canvases: the event names, fields and semantics are the DOM's.
   ancestors' handlers (`stopPropagation`, `target`, `currentTarget`); enter and leave
   go to each item entered or left and do not bubble. Nothing holds the
   pointer until a handler captures it: `e.currentTarget.setPointerCapture(
-  e.pointerId)` keeps its moves and release on that item until the release
-  (as on the DOM; a worker cannot capture). `preventDefault` on a
+  e.pointerId)` keeps that pointer's moves and release on that item until
+  its release (as on the DOM; a worker cannot capture). Each pointer has
+  its own capture, by its id: another finger's press, moves, release or
+  cancel leave it, and `releasePointerCapture(id)` and
+  `hasPointerCapture(id)` answer for that pointer. Focus, the pressed look,
+  hover and a text selection's drag stay one for the surface: the last
+  press's. `preventDefault` on a
   pointerdown keeps its own response (focus, a selection), as a DOM
   mousedown's; the press still happens (a click is not its default); on a
-  wheel, the scroll. `attach` passes the browser event's buttons,
+  wheel, the scroll. `attach` passes the browser event's buttons, pointer id and primary flag,
   pointer type, modifiers and deltas, and scrolls lines and pages as far as a browser does.
   A pointerdown carries no click count (Chrome's `detail` is 0, and a
   prevented one sends no mousedown), so the Document counts runs of clicks
@@ -430,7 +437,7 @@ canvases: the event names, fields and semantics are the DOM's.
   drag on the canvas stays the app's, and a touch on nothing lets the page
   scroll. When the browser takes the pointer back anyway (a pan or zoom
   the items allow, a palm), `cancel(x, y)` sends `pointercancel` to the
-  item holding the pointer (captured), else the one under where it last
+  item holding that pointer (captured), else the one under where it last
   was (the browser's cancel says 0, 0), bubbling, and ends the press with
   no `pointerup`, as the DOM's.
   A press of another button (a right press) reaches the pointer handlers

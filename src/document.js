@@ -84,7 +84,8 @@ export class Change {
  * @property {number=} deltaX
  * @property {number=} deltaY
  * @property {number=} deltaMode 0 pixels, 1 lines, 2 pages, as the DOM's
- * @property {number=} pointerId
+ * @property {number=} pointerId 1 when not given
+ * @property {boolean=} isPrimary whether it is the primary pointer of its type, as the DOM's; when not given, the only pointer down, or the one pressed while no other was
  * @property {number=} timeStamp when the platform sent it (ms): presses that carry it are counted into runs of clicks
  * @property {string=} pointerType 'mouse', 'touch' or 'pen', as the DOM's ('mouse' when not given)
  */
@@ -103,8 +104,8 @@ const POINTER = new Set(['pointerdown', 'pointermove', 'pointerup', 'pointercanc
  * moves and the release go to the item pressed.
  */
 export class Pointer {
-  /** @param {string} type @param {number} x @param {number} y @param {Item} target @param {number} offsetX @param {number} offsetY @param {PointerInfo} info */
-  constructor(type, x, y, target, offsetX, offsetY, info) {
+  /** @param {string} type @param {number} x @param {number} y @param {Item} target @param {number} offsetX @param {number} offsetY @param {PointerInfo} info @param {boolean} [primary] */
+  constructor(type, x, y, target, offsetX, offsetY, info, primary = true) {
     this.type = type;
     this.x = x;
     this.y = y;
@@ -122,6 +123,8 @@ export class Pointer {
     this.deltaY = info.deltaY ?? 0;
     this.deltaMode = info.deltaMode ?? 0;
     this.pointerId = info.pointerId ?? 1;
+    /** Whether it is the primary pointer (the first finger down), as the DOM's. */
+    this.isPrimary = info.isPrimary ?? primary;
     /** What pointed: 'mouse', 'touch' or 'pen'. */
     this.pointerType = info.pointerType ?? 'mouse';
     /** The item under the pointer (or pressed); the item whose handler runs. */
@@ -373,8 +376,14 @@ export class Document {
     this.dragged = null;
     /** `dragged` and its ancestors when it became the item under the drag: its leave goes to the nearest still attached. @type {Item[]} */
     this.dragPath = [];
-    /** The item a pointerdown reached: moves and the release go to it until then. @type {Item | null} */
-    this.grabbed = null;
+    /** The item that captured each pointer (setPointerCapture), by pointer id: its moves and release go to it until then. @type {Map<number, Item>} */
+    this.captures = new Map();
+    /** The pointers pressed and neither released nor taken back yet, by id. @type {Set<number>} */
+    this.downs = new Set();
+    /** The primary pointer's id while pointers are down: the one pressed while no other was. */
+    this.primary = 1;
+    /** The pointer the last pointer event was of: the one a capture without an id is of. */
+    this.pointed = 1;
     /** Its padding box origin when pressed, for offsets once it is not drawn under the pointer. */
     this.grabX = 0;
     this.grabY = 0;
@@ -642,6 +651,7 @@ export class Document {
    * @returns {Pointer | null}
    */
   pointer(type, x, y, info, to = null) {
+    this.pointed = info.pointerId ?? 1;
     // A press reaches the root's `presses` (ren-core's $presses) wherever it lands.
     const presses = type === 'pointerdown' && this.heard('presses');
     if (this.pointing === 0 && !presses) return null;
@@ -670,7 +680,7 @@ export class Document {
       lx = hits.px;
       ly = hits.py;
     }
-    const e = new Pointer(type, x, y, target, lx - ox, ly - oy, info);
+    const e = new Pointer(type, x, y, target, lx - ox, ly - oy, info, this.primaryOf(info));
     for (let n = /** @type {Item | null} */ (target); n !== null && !e.stopped; n = n.parent) {
       if (!n.pointers) continue;
       e.currentTarget = n;
@@ -688,6 +698,22 @@ export class Document {
       this.grabY = oy;
     }
     return e;
+  }
+
+  /**
+   * Whether a pointer is the primary one when its host does not say: the
+   * only one down, or the one pressed while no other was, as the DOM's
+   * first finger (a second one is not, even once the first is lifted).
+   * @param {PointerInfo} info
+   */
+  primaryOf(info) {
+    return this.downs.size === 0 || (info.pointerId ?? 1) === this.primary;
+  }
+
+  /** The item holding a pointer (the first captured of them), or null. @returns {Item | null} */
+  get grabbed() {
+    for (const item of this.captures.values()) return item;
+    return null;
   }
 
   /** Whether the page has a handler of `name` (a root-wide one: `keys`, `presses`). @param {string} name */
@@ -712,12 +738,8 @@ export class Document {
     if (child.parent !== parent) return;
     unlink(child);
     this.boxes.drop(child);
-    // The pointer's capture goes with a removed item, as the DOM releases it.
-    for (let n = this.grabbed; n !== null; n = n.parent)
-      if (n === child) {
-        this.grabbed = null;
-        break;
-      }
+    // A pointer's capture goes with a removed item, as the DOM releases it.
+    for (const [id, item] of this.captures) if (within(item, child)) this.captures.delete(id);
     if (this.mirror !== null) this.mirror.remove(parent, child);
     this.damage = true;
   }
@@ -1398,7 +1420,7 @@ export class Document {
     this.keyed = false;
     this.present();
     this.outside(x, y);
-    this.grabbed = null;
+    this.captures.delete(info.pointerId ?? 1);
     const e = this.pointer('pointerdown', x, y, info);
     this.present();
     return e !== null && e.handled > 0;
@@ -1441,8 +1463,12 @@ export class Document {
     this.present();
     this.outside(x, y);
     // The pointer handlers first: the item pressed keeps the pointer until release.
-    // Nothing holds the pointer until a handler captures it (setPointerCapture), as on the DOM.
-    this.grabbed = null;
+    // Nothing holds the pointer until a handler captures it (setPointerCapture), as on the DOM;
+    // what another pointer captured stays its own.
+    const id = info.pointerId ?? 1;
+    this.captures.delete(id);
+    if (this.downs.size === 0) this.primary = id;
+    this.downs.add(id);
     // The element pressed is the one under the point before the handlers
     // ran, as the DOM's: a handler that lays something over the point (a
     // dropdown's backdrop) keeps the press's focus from nothing.
@@ -1994,7 +2020,7 @@ export class Document {
    */
   move(x, y, info = PLAIN_POINTER) {
     this.present();
-    this.pointer('pointermove', x, y, info, this.grabbed);
+    this.pointer('pointermove', x, y, info, this.captures.get(info.pointerId ?? 1) ?? null);
     if (this.dragging === 1) {
       // Dragging in an Edit selects from where the press put the caret.
       const item = this.current;
@@ -2072,8 +2098,10 @@ export class Document {
    */
   cancel(x, y, info = PLAIN_POINTER) {
     this.present();
-    this.pointer('pointercancel', x, y, info, this.grabbed);
-    this.grabbed = null;
+    const id = info.pointerId ?? 1;
+    this.pointer('pointercancel', x, y, info, this.captures.get(id) ?? null);
+    this.captures.delete(id);
+    this.downs.delete(id);
     this.dragging = 0;
     this.pressing(null);
     this.present();
@@ -2100,8 +2128,10 @@ export class Document {
 
   /** The pointer button came up: nothing is pressed any more. @param {number} [x] @param {number} [y] @param {PointerInfo} [info] */
   release(x, y, info = PLAIN_POINTER) {
-    if (x !== undefined && y !== undefined) this.pointer('pointerup', x, y, info, this.grabbed);
-    this.grabbed = null;
+    const id = info.pointerId ?? 1;
+    if (x !== undefined && y !== undefined) this.pointer('pointerup', x, y, info, this.captures.get(id) ?? null);
+    this.captures.delete(id);
+    this.downs.delete(id);
     this.dragging = 0;
     this.pressing(null);
     this.present();
@@ -2188,10 +2218,10 @@ export class Document {
     /** @type {Item[]} */
     const after = [];
     for (let n = to; n !== null; n = n.parent) after.push(n);
-    for (const n of before) if (n.pointers && !after.includes(n)) this.emit(n, 'pointerleave', new Pointer('pointerleave', x, y, n, NaN, NaN, info));
+    for (const n of before) if (n.pointers && !after.includes(n)) this.emit(n, 'pointerleave', new Pointer('pointerleave', x, y, n, NaN, NaN, info, this.primaryOf(info)));
     for (let k = after.length - 1; k >= 0; k--) {
       const n = after[k];
-      if (n.pointers && !before.includes(n)) this.emit(n, 'pointerenter', new Pointer('pointerenter', x, y, n, NaN, NaN, info));
+      if (n.pointers && !before.includes(n)) this.emit(n, 'pointerenter', new Pointer('pointerenter', x, y, n, NaN, NaN, info, this.primaryOf(info)));
     }
   }
 

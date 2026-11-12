@@ -281,6 +281,68 @@ describe('ren canv document', () => {
     doc.close();
   });
 
+  it('keeps a capture per pointer: two fingers on two items each get their own moves, and the first is the primary one', () => {
+    const doc = new Document(mono, { width: 300, height: 200 });
+    /** @type {string[]} */
+    const seen = [];
+    /** @type {Record<string, any>} */
+    const pads = {};
+    const note = (/** @type {string} */ who) => (/** @type {any} */ e) => void seen.push(`${who} ${e.type} ${e.pointerId}${e.isPrimary ? ' primary' : ''}`);
+    const pad = (/** @type {string} */ who) => (
+      <View
+        ref={(/** @type {any} */ n) => (pads[who] = n)}
+        style={{ width: 50, height: 50 }}
+        onPointerDown={(/** @type {any} */ e) => (note(who)(e), e.currentTarget.setPointerCapture(e.pointerId))}
+        onPointerMove={note(who)}
+        onPointerUp={note(who)}
+        onPointerCancel={note(who)}
+      />
+    );
+    render(() => (
+      <View style={{ width: 300, height: 200, direction: 'row', gap: 50 }}>
+        {pad('a')}
+        {pad('b')}
+      </View>
+    ), doc);
+    doc.present();
+    // The first finger on a, the second on b: a's capture stays its own.
+    doc.press(10, 10, 1, false, { pointerId: 4 });
+    doc.press(110, 10, 1, false, { pointerId: 5 });
+    assert.deepEqual([pads.a.hasPointerCapture(4), pads.b.hasPointerCapture(5), pads.a.hasPointerCapture(5), pads.b.hasPointerCapture(4)], [true, true, false, false], 'a second press does not drop the first capture');
+    // Each dragged off its item, over the other's: its moves stay with the item that captured it.
+    doc.move(120, 150, { pointerId: 4 });
+    doc.move(20, 150, { pointerId: 5 });
+    doc.move(250, 150, { pointerId: 6 });
+    assert.deepEqual(seen, ['a pointerdown 4 primary', 'b pointerdown 5', 'a pointermove 4 primary', 'b pointermove 5']);
+    seen.length = 0;
+    // A release ends that pointer's capture alone; so does a pointer taken back.
+    doc.release(120, 150, { pointerId: 4 });
+    assert.deepEqual([pads.a.hasPointerCapture(4), pads.b.hasPointerCapture(5)], [false, true]);
+    doc.move(20, 20, { pointerId: 5 });
+    doc.cancel(0, 0, { pointerId: 5 });
+    assert.equal(pads.b.hasPointerCapture(5), false);
+    assert.deepEqual(seen, ['a pointerup 4 primary', 'b pointermove 5', 'b pointercancel 5'], 'the second finger is not the primary one, even once the first is lifted');
+    seen.length = 0;
+    // All lifted, the next finger is the first again; a host that says which is primary is believed.
+    doc.press(110, 10, 1, false, { pointerId: 7 });
+    pads.b.releasePointerCapture(8);
+    assert.equal(pads.b.hasPointerCapture(7), true, 'another pointer\'s release leaves it');
+    pads.b.releasePointerCapture(7);
+    assert.equal(pads.b.hasPointerCapture(7), false);
+    doc.release(110, 10, { pointerId: 7 });
+    doc.press(10, 10, 1, false, { pointerId: 9, isPrimary: false });
+    doc.release(10, 10, { pointerId: 9, isPrimary: false });
+    assert.deepEqual(seen, ['b pointerdown 7 primary', 'b pointerup 7 primary', 'a pointerdown 9', 'a pointerup 9']);
+    // A capture with no id is the last event's pointer's, as one pointer's always was.
+    doc.press(10, 10);
+    assert.equal(pads.a.hasPointerCapture(), true);
+    assert.equal(pads.a.hasPointerCapture(1), true);
+    assert.equal(doc.grabbed, pads.a);
+    doc.release(10, 10);
+    assert.equal(doc.grabbed, null);
+    doc.close();
+  });
+
   it('lets a pointer handler keep the surface from its own response: focus, a scroll', () => {
     const doc = new Document(mono, { width: 200, height: 100 });
     let presses = 0;

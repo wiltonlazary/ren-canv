@@ -1019,22 +1019,23 @@ export class Item {
     return actions;
   }
 
-  /** Keeps the pointer's moves and its release on this item until the release, as an element's. @param {number} [id] */
+  /**
+   * Keeps a pointer's moves and its release on this item until the release, as an element's: the pointer `id`
+   * (an event's `pointerId`), the last event's when not given. Each pointer has its own.
+   * @param {number} [id]
+   */
   setPointerCapture(id) {
-    void id;
-    if (this.owner !== null) this.owner.grabbed = this;
+    if (this.owner !== null) this.owner.captures.set(id ?? this.owner.pointed, this);
   }
 
   /** @param {number} [id] */
   releasePointerCapture(id) {
-    void id;
-    if (this.owner !== null && this.owner.grabbed === this) this.owner.grabbed = null;
+    if (this.hasPointerCapture(id)) this.owner.captures.delete(id ?? this.owner.pointed);
   }
 
   /** @param {number} [id] */
   hasPointerCapture(id) {
-    void id;
-    return this.owner !== null && this.owner.grabbed === this;
+    return this.owner !== null && this.owner.captures.get(id ?? this.owner.pointed) === this;
   }
 }
 
